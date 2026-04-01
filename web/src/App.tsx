@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, Clock, User, Calendar } from 'lucide-react'
+import { Sparkles, Clock, User, Calendar } from 'lucide-react'
 import UploadPage from './pages/UploadPage'
 import AnalysisPage from './pages/AnalysisPage'
 import HistoryPage from './pages/HistoryPage'
@@ -12,8 +12,8 @@ type Tab = 'home' | 'calendar' | 'history' | 'profile'
 type Page = 'upload' | 'analysis' | 'calendar' | 'history' | 'profile'
 
 function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('home')
-  const [currentPage, setCurrentPage] = useState<Page>('upload')
+  const [activeTab, setActiveTab] = useState<Tab>('calendar')
+  const [currentPage, setCurrentPage] = useState<Page>('calendar')
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [images, setImages] = useState<{ myImage: string; masterImage: string } | null>(null)
 
@@ -95,19 +95,19 @@ function App() {
       {showTabBar && (
         <nav className="tabbar">
           <button
-            className={`tabbar-item ${activeTab === 'home' ? 'active' : ''}`}
-            onClick={() => handleTabChange('home')}
-          >
-            <Home className="tabbar-icon" />
-            <span className="tabbar-label">首页</span>
-          </button>
-
-          <button
             className={`tabbar-item ${activeTab === 'calendar' ? 'active' : ''}`}
             onClick={() => handleTabChange('calendar')}
           >
             <Calendar className="tabbar-icon" />
-            <span className="tabbar-label">日历</span>
+            <span className="tabbar-label">练舞日历</span>
+          </button>
+
+          <button
+            className={`tabbar-item ${activeTab === 'home' ? 'active' : ''}`}
+            onClick={() => handleTabChange('home')}
+          >
+            <Sparkles className="tabbar-icon" />
+            <span className="tabbar-label">舞技分析</span>
           </button>
 
           <button

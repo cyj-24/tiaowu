@@ -1,63 +1,58 @@
-/* Keep 风格设计系统 - 摇摆舞分析器 */
+/* Modern Vintage 风格设计系统 - 摇摆舞分析器 (中文 App 优化版) */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@700;900&display=swap');
 
 :root {
-  /* 主色调 - 活力橙紫渐变 */
-  --primary: #FF6B35;
-  --primary-light: #FF8F5C;
-  --primary-dark: #E85A2A;
-  --secondary: #8B5CF6;
-  --secondary-light: #A78BFA;
+  /* 主色调 - 爵士金与复古黄铜 */
+  --primary: #D4AF37;
+  --primary-light: #E5C365;
+  --primary-dark: #A68626;
+  --secondary: #6B5B95; 
 
   /* 功能色 */
-  --success: #10B981;
-  --warning: #F59E0B;
-  --error: #EF4444;
+  --success: #609966;
+  --warning: #E0A96D;
+  --error: #A05344;
 
-  /* 深色主题背景 */
-  --bg-primary: #0F0F0F;
-  --bg-secondary: #1A1A1A;
-  --bg-tertiary: #242424;
-  --bg-card: #1C1C1E;
-  --bg-hover: #2C2C2E;
+  /* 复古纸张背景 */
+  --bg-primary: #FDFBF7;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F2EFE9;
+  --bg-card: #FFFFFF;
+  --bg-hover: #F9F6ED;
 
   /* 文字色 */
-  --text-primary: #FFFFFF;
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --text-tertiary: rgba(255, 255, 255, 0.4);
-  --text-inverse: #000000;
+  --text-primary: #2C2C2C;
+  --text-secondary: #5D5D5D;
+  --text-tertiary: #9A948C;
 
   /* 边框 */
-  --border-color: rgba(255, 255, 255, 0.1);
-  --border-focus: rgba(255, 107, 53, 0.5);
+  --border-color: rgba(44, 44, 44, 0.12);
+  --border-focus: rgba(212, 175, 55, 0.5);
 
-  /* 渐变 */
-  --gradient-primary: linear-gradient(135deg, #FF6B35 0%, #8B5CF6 100%);
-  --gradient-surface: linear-gradient(180deg, #1C1C1E 0%, #0F0F0F 100%);
-  --gradient-glow: radial-gradient(ellipse at center, rgba(255, 107, 53, 0.15) 0%, transparent 70%);
-
-  /* 阴影 */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(255, 107, 53, 0.3);
-
-  /* 尺寸 */
-  --navbar-height: 56px;
-  --tabbar-height: 72px;
-  --safe-top: env(safe-area-inset-top);
-  --safe-bottom: env(safe-area-inset-bottom);
-
-  /* 圆角 */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
-
-  /* 字体 */
-  --font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* 字体设置 - 中文复古宋体 + 英文 Playfair */
+  --font-display: 'Playfair Display', 'Noto Serif SC', 'STSong', 'Songti SC', serif;
+  --font-body: 'Inter', -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-mono: 'SF Mono', Monaco, monospace;
 
+  /* 复古功能色盘 - 低饱和度莫兰迪色系 */
+  --v-red: #A34D4D;      /* 赭石红 */
+  --v-green: #5D6D5E;    /* 橄榄绿 */
+  --v-gold: var(--primary); /* 爵士金 */
+  --v-blue: #4A5D7A;     /* 普鲁士蓝 */
+  --v-red-light: #F9F2F2;
+  --v-green-light: #F2F4F2;
+  --v-gold-light: #FDF9F0;
+  --v-blue-light: #F2F4F7;
+
+  /* 阴影 - 增强实体垂直感 */
+  --shadow-sm: 0 1px 3px rgba(44, 44, 44, 0.1);
+  --shadow-md: 0 4px 12px rgba(44, 44, 44, 0.08), 0 0 1px rgba(44, 44, 44, 0.1);
+  --shadow-lg: 0 12px 32px rgba(44, 44, 44, 0.12);
+
+  /* TabBar 专门优化 - 适合单手点击 */
+  --tabbar-height: 76px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
   /* 动画 */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
@@ -79,14 +74,25 @@ html {
 }
 
 body {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100%;
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  /* 添加微弱的纸张纹理感 */
+  background-image: radial-gradient(#2C2C2C 0.5px, transparent 0.5px);
+  background-size: 40px 40px;
+  background-attachment: fixed;
+  opacity: 0.98;
+}
+
+/* 页面标题统一使用衬线字体 */
+h1, h2, h3, .navbar-title, .stat-value {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
 /* 页面容器 */
@@ -96,7 +102,7 @@ body {
   padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom));
 }
 
-/* 导航栏 - Keep风格 */
+/* 导航栏 - 改为实色框架风格 */
 .navbar {
   position: fixed;
   top: 0;
@@ -104,10 +110,8 @@ body {
   right: 0;
   height: calc(var(--navbar-height) + var(--safe-top));
   padding-top: var(--safe-top);
-  background: rgba(15, 15, 15, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  border-bottom: 2px solid var(--text-primary); /* 加厚底纹强化框架感 */
   z-index: 100;
   display: flex;
   align-items: center;
@@ -117,10 +121,11 @@ body {
 }
 
 .navbar-title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
   color: var(--text-primary);
-  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .navbar-back {
@@ -130,15 +135,15 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--text-primary);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
   transition: background var(--transition-fast);
 }
 
 .navbar-back:active {
-  background: var(--bg-hover);
+  background: var(--bg-tertiary);
 }
 
-/* TabBar - Keep风格 */
+/* TabBar - 复古底部导航优化 */
 .tabbar {
   position: fixed;
   bottom: 0;
@@ -146,14 +151,13 @@ body {
   right: 0;
   height: calc(var(--tabbar-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: rgba(15, 15, 15, 0.98);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  border-top: 2px solid var(--text-primary);
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-around;
+  box-shadow: 0 -4px 12px rgba(44, 44, 44, 0.05);
 }
 
 .tabbar-item {
@@ -163,39 +167,20 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   color: var(--text-tertiary);
-  transition: color var(--transition-fast);
-  position: relative;
+  transition: all var(--transition-fast);
 }
 
 .tabbar-item.active {
   color: var(--primary);
 }
 
-.tabbar-item.active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  width: 40px;
-  height: 3px;
-  background: var(--gradient-primary);
-  border-radius: 0 0 4px 4px;
-}
-
-.tabbar-icon {
-  width: 24px;
-  height: 24px;
-  transition: transform var(--transition-fast);
-}
-
-.tabbar-item:active .tabbar-icon {
-  transform: scale(0.9);
-}
-
 .tabbar-label {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 700;
+  font-family: var(--font-body);
+  letter-spacing: 0.05em;
 }
 
 /* 卡片 - Keep悬浮风格 */
@@ -532,9 +517,9 @@ input:checked + .switch-slider::before {
 }
 
 .glass {
-  background: rgba(28, 28, 30, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--border-color);
 }
 

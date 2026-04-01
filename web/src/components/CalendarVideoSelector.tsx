@@ -126,27 +126,27 @@ export default function CalendarVideoSelector({ onFrameSelected }: CalendarVideo
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+
   const calendarDays = generateCalendarDays()
 
   // 播放器视图
   if (view === 'player' && selectedRecord) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
         {/* 返回按钮 */}
         <button
           onClick={() => {
             setView('calendar')
             setSelectedRecord(null)
           }}
-          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+          className="flex items-center gap-2 text-gray-500 font-bold hover:text-gray-900 transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" />
-          返回日历
+          <ChevronLeft className="w-5 h-5" />
+          返回成长日记
         </button>
 
         {/* 视频播放器 */}
-        <div className="rounded-2xl overflow-hidden bg-black">
+        <div className="rounded-[28px] overflow-hidden bg-black shadow-xl ring-1 ring-gray-100">
           <video
             ref={videoRef}
             src={`/api/calendar/video/${selectedRecord.id}`}
@@ -160,35 +160,51 @@ export default function CalendarVideoSelector({ onFrameSelected }: CalendarVideo
         <canvas ref={canvasRef} className="hidden" />
 
         {/* 视频信息 */}
-        <div className="card bg-white/5 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white font-medium">
-              {new Date(selectedRecord.date).getMonth() + 1}月{new Date(selectedRecord.date).getDate()}日
-            </span>
+        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col">
+              <span className="text-gray-900 font-black text-lg">
+                {new Date(selectedRecord.date).getMonth() + 1}月{new Date(selectedRecord.date).getDate()}日
+              </span>
+              <span className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-0.5">DANCE SESSION</span>
+            </div>
             {selectedRecord.duration && (
-              <span className="text-white/50 text-sm">{formatDuration(selectedRecord.duration)}</span>
+              <div className="bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-blue-500" />
+                <span className="text-gray-900 font-bold text-sm">{formatDuration(selectedRecord.duration)}</span>
+              </div>
             )}
           </div>
-          {selectedRecord.style && (
-            <span className="inline-block px-2 py-1 rounded-full bg-orange-500/20 text-orange-400 text-xs mb-2">
-              {selectedRecord.style}
+          
+          <div className="flex gap-2 mb-4">
+            {selectedRecord.style && (
+              <span className="inline-block px-3 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-black">
+                {selectedRecord.style.toUpperCase()}
+              </span>
+            )}
+            <span className="inline-block px-3 py-1 rounded-lg bg-orange-50 text-orange-500 text-xs font-black">
+              练舞记录
             </span>
-          )}
+          </div>
+
           {selectedRecord.notes && (
-            <p className="text-white/50 text-sm line-clamp-2">{selectedRecord.notes}</p>
+            <div className="bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
+              <p className="text-gray-600 text-[13px] leading-relaxed italic font-medium">“{selectedRecord.notes}”</p>
+            </div>
           )}
         </div>
 
         {/* 截帧按钮 */}
         <button
           onClick={handleExtractFrame}
-          className="btn btn-primary btn-lg btn-block animate-pulse-glow"
+          className="w-full py-5 bg-gray-900 text-white rounded-[24px] font-black text-[17px] shadow-lg shadow-gray-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
-          截取当前帧用于分析
+          <Video className="w-5 h-5" />
+          截取当前帧进行 AI 分析
         </button>
 
-        <p className="text-white/40 text-xs text-center">
-          提示：先调整视频到想要分析的帧，然后点击按钮截取
+        <p className="text-gray-400 text-xs text-center font-bold px-8 leading-normal">
+          💡 技巧：将视频调整到最想对比的动作瞬间，然后点击上方按钮
         </p>
       </div>
     )
@@ -196,124 +212,155 @@ export default function CalendarVideoSelector({ onFrameSelected }: CalendarVideo
 
   // 日历视图
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* 月份导航 */}
       <div className="flex items-center justify-between">
-        <button
-          onClick={() => navigateMonth(-1)}
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5 text-white/60" />
-        </button>
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-orange-500" />
+        <h3 className="text-xl font-black text-gray-900 flex items-center gap-2.5">
+          <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-gray-100">
+            <Calendar className="w-5 h-5 text-gray-900" />
+          </div>
           {year}年{month}月
         </h3>
-        <button
-          onClick={() => navigateMonth(1)}
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-        >
-          <ChevronRight className="w-5 h-5 text-white/60" />
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigateMonth(-1)}
+            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm hover:bg-gray-50 active:scale-95 transition-all"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <button
+            onClick={() => navigateMonth(1)}
+            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm hover:bg-gray-50 active:scale-95 transition-all"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
       </div>
 
-      {/* 统计 */}
-      {stats && stats.total_records > 0 && (
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-1 text-white/60">
-            <Video className="w-4 h-4" />
-            <span>{stats.total_records} 条记录</span>
+      <div className="bg-white rounded-[32px] p-6 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-gray-100">
+        {/* 星期标题 */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {['日', '一', '二', '三', '四', '五', '六'].map(day => (
+            <div key={day} className="text-center py-2 text-gray-400 text-[11px] font-black uppercase tracking-tighter">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* 日历网格 */}
+        <div className="grid grid-cols-7 gap-y-3 gap-x-1">
+          {calendarDays.map((day, index) => {
+            if (day === null) {
+              return <div key={`empty-${index}`} className="aspect-square" />
+            }
+
+            const dayRecords = getRecordsForDay(day)
+            const hasRecord = dayRecords.length > 0
+            const isToday = new Date().getDate() === day && new Date().getMonth() + 1 === month && new Date().getFullYear() === year
+
+            return (
+              <motion.button
+                key={day}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => handleDayClick(day)}
+                disabled={!hasRecord}
+                className="flex flex-col items-center gap-1.5"
+              >
+                <div className={`
+                  w-10 h-10 rounded-full flex items-center justify-center relative transition-all duration-300
+                  ${isToday ? 'bg-gray-900 text-white shadow-md' : 'text-gray-900 font-bold'}
+                  ${!hasRecord && !isToday ? 'text-gray-300 font-medium' : ''}
+                `}>
+                  <span className="text-[15px] z-10">{day}</span>
+                  {hasRecord && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center text-[10px] shadow-sm border border-gray-50">
+                      🤩
+                    </div>
+                  )}
+                </div>
+                {hasRecord && (
+                  <div className="flex gap-0.5">
+                    {dayRecords.slice(0, 3).map((_, i) => (
+                      <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm" />
+                    ))}
+                  </div>
+                )}
+              </motion.button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 底部详细统计卡片 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">本月练舞</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black text-gray-900">{stats?.total_records || 0}</span>
+            <span className="text-xs font-bold text-gray-500">次</span>
           </div>
         </div>
-      )}
-
-      {/* 星期标题 */}
-      <div className="grid grid-cols-7 gap-1">
-        {weekDays.map(day => (
-          <div key={day} className="text-center py-2 text-white/40 text-sm font-medium">
-            {day}
+        <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">累计时长</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black text-gray-900">12.5</span>
+            <span className="text-xs font-bold text-gray-500">小时</span>
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* 日历网格 */}
-      <div className="grid grid-cols-7 gap-1">
-        {calendarDays.map((day, index) => {
-          if (day === null) {
-            return <div key={`empty-${index}`} className="aspect-square" />
-          }
-
-          const dayRecords = getRecordsForDay(day)
-          const hasRecord = dayRecords.length > 0
-
-          return (
-            <motion.button
-              key={day}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleDayClick(day)}
-              disabled={!hasRecord}
-              className={`
-                aspect-square rounded-xl flex flex-col items-center justify-center relative
-                ${hasRecord
-                  ? 'bg-gradient-to-br from-orange-500/20 to-purple-500/20 border border-orange-500/30 cursor-pointer'
-                  : 'bg-white/5 opacity-50 cursor-not-allowed'
-                }
-              `}
-            >
-              <span className={`text-sm font-medium ${hasRecord ? 'text-white' : 'text-white/40'}`}>
-                {day}
-              </span>
-              {hasRecord && (
-                <div className="absolute bottom-1 flex gap-0.5">
-                  {dayRecords.slice(0, 3).map((_, i) => (
-                    <div key={i} className="w-1 h-1 rounded-full bg-orange-500" />
-                  ))}
-                </div>
-              )}
-            </motion.button>
-          )
-        })}
-      </div>
-
-      {/* 最近记录列表 */}
+      {/* 最近记录列表 - 仿成长日记展示 */}
       {records.length > 0 && (
-        <div className="mt-4">
-          <h4 className="text-sm font-medium text-white/60 mb-3">本月记录</h4>
-          <div className="space-y-2 max-h-48 overflow-auto">
-            {records.slice(0, 5).map((record) => (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h4 className="text-[17px] font-black text-gray-900">训练日记</h4>
+            <button className="text-blue-500 text-xs font-black px-3 py-1 bg-blue-50 rounded-lg">查看全部</button>
+          </div>
+          <div className="space-y-4">
+            {records.slice(0, 4).map((record) => (
               <motion.button
                 key={record.id}
                 onClick={() => {
                   setSelectedRecord(record)
                   setView('player')
                 }}
-                className="w-full card p-3 flex items-center gap-3 text-left card-hover"
+                className="w-full bg-white rounded-[24px] p-4 flex items-center gap-4 text-left shadow-sm border border-gray-50 hover:border-gray-200 transition-all group"
               >
-                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div className="w-16 h-16 rounded-[20px] bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-inner ring-1 ring-gray-100">
                   {record.thumbnail_path ? (
                     <img
                       src={`/api/calendar/thumbnail/${record.id}`}
                       alt=""
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500"
                     />
                   ) : (
-                    <Video className="w-5 h-5 text-white/30" />
+                    <div className="bg-blue-50 w-full h-full flex items-center justify-center">
+                      <Video className="w-6 h-6 text-blue-500" />
+                    </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium">
-                    {new Date(record.date).getMonth() + 1}月{new Date(record.date).getDate()}日
-                  </p>
-                  {record.style && (
-                    <p className="text-white/50 text-xs">{record.style}</p>
-                  )}
-                </div>
-                {record.duration && (
-                  <div className="flex items-center gap-1 text-white/40 text-xs">
-                    <Clock className="w-3 h-3" />
-                    {formatDuration(record.duration)}
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-gray-900 text-base font-black">
+                      {new Date(record.date).getMonth() + 1}月{new Date(record.date).getDate()}日
+                    </span>
+                    <span className="text-[16px]">✨</span>
                   </div>
-                )}
+                  <div className="flex items-center gap-3">
+                    {record.style && (
+                      <p className="text-blue-500 text-[11px] font-black tracking-tight">{record.style.toUpperCase()}</p>
+                    )}
+                    {record.duration && (
+                      <div className="flex items-center gap-1 text-gray-400 text-[11px] font-bold">
+                        <Clock className="w-3 h-3" />
+                        {formatDuration(record.duration)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-gray-900 group-hover:text-white transition-all">
+                  <ChevronRight className="w-4 h-4" />
+                </div>
               </motion.button>
             ))}
           </div>
@@ -321,10 +368,12 @@ export default function CalendarVideoSelector({ onFrameSelected }: CalendarVideo
       )}
 
       {records.length === 0 && !isLoading && (
-        <div className="card p-8 text-center">
-          <Video className="w-10 h-10 text-white/20 mx-auto mb-3" />
-          <p className="text-white/40">本月没有记录</p>
-          <p className="text-white/30 text-sm mt-1">先去日历页面添加跳舞记录吧</p>
+        <div className="bg-white rounded-[32px] p-12 text-center border border-dashed border-gray-200 shadow-inner">
+          <div className="w-20 h-20 bg-gray-50 rounded-[30px] flex items-center justify-center mx-auto mb-6 border border-gray-100">
+            <Video className="w-10 h-10 text-gray-200" />
+          </div>
+          <p className="text-gray-900 font-black text-lg mb-2">还没有训练记录哦</p>
+          <p className="text-gray-400 font-bold text-sm">开始你的第一次练舞，开启成长之旅吧 ✨</p>
         </div>
       )}
     </div>

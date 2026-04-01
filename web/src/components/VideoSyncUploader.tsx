@@ -22,7 +22,6 @@ export default function VideoSyncUploader({ onSyncComplete }: VideoSyncUploaderP
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<'upload' | 'syncing' | 'merging' | 'player'>('upload')
   const [showDebug, setShowDebug] = useState(false)
-  const [manualAdjust, setManualAdjust] = useState(0)
 
   const onDropVideo1 = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -70,7 +69,6 @@ export default function VideoSyncUploader({ onSyncComplete }: VideoSyncUploaderP
       setSyncResult(result)
 
       if (result.success) {
-        // 同步成功，开始合并视频
         setStep('merging')
         setIsMerging(true)
 
@@ -108,14 +106,12 @@ export default function VideoSyncUploader({ onSyncComplete }: VideoSyncUploaderP
 
     setIsMerging(true)
     setError(null)
-    setManualAdjust(adjustment)
 
     try {
       const newOffset = syncResult.offset + adjustment
       const mergedBlob = await mergeVideos(video1, video2, newOffset)
       const mergedUrl = URL.createObjectURL(mergedBlob)
 
-      // 释放旧URL
       if (mergedVideoUrl) {
         URL.revokeObjectURL(mergedVideoUrl)
       }
@@ -138,204 +134,167 @@ export default function VideoSyncUploader({ onSyncComplete }: VideoSyncUploaderP
     }
   }
 
+  const steps = [
+    { label: '准备素材', status: 'upload' },
+    { label: 'AI 对齐', status: 'syncing' },
+    { label: '深度对比', status: 'player' }
+  ]
+
+
+
   return (
-    <div className="space-y-4">
-      {/* 步骤指示器 */}
-      <div className="flex items-center justify-center gap-2 mb-6">
-        {['上传', '对齐', '播放'].map((label, index) => (
-          <div key={label} className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-              index === 0 || (index === 1 && step !== 'upload') || (index === 2 && (step === 'player' || step === 'merging'))
-                ? 'bg-gradient-to-r from-orange-500 to-purple-500 text-white'
-                : 'bg-white/10 text-white/40'
-            }`}>
-              {index < 2 ? index + 1 : <Check className="w-4 h-4" />}
+    <div className="space-y-6">
+      {/* 极简步骤条 */}
+      <div className="flex items-center justify-between px-4 mb-4">
+        {steps.map((s, index) => {
+          const isActive = step === s.status || (step === 'merging' && index === 1) || (step === 'player' && index === 2)
+          return (
+            <div key={index} className="flex flex-col items-center gap-2 relative">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all duration-500 border ${
+                isActive 
+                  ? 'bg-gray-900 text-white border-gray-900 shadow-lg shadow-gray-200 scale-110' 
+                  : 'bg-white text-gray-300 border-gray-100'
+              }`}>
+                {index + 1}
+              </div>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-gray-900' : 'text-gray-300'}`}>
+                {s.label}
+              </span>
             </div>
-            <span className={`text-xs ${
-              index <= (step === 'player' ? 2 : step === 'syncing' || step === 'merging' ? 1 : 0)
-                ? 'text-white'
-                : 'text-white/40'
-            }`}>
-              {label}
-            </span>
-            {index < 2 && <div className="w-8 h-px bg-white/20 mx-2" />}
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <AnimatePresence mode="wait">
-        {/* 上传步骤 */}
         {step === 'upload' && (
           <motion.div
             key="upload"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ opacity: 0, y: -15 }}
             className="space-y-4"
           >
-            {/* 视频1 */}
-            <div className="card">
-              <div className="p-4 border-b border-[var(--border-color)]">
+            {/* 视频上传对 - 1 */}
+            <div className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100/50">
+              <div className="flex items-center justify-between mb-5 px-1">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                    <span className="text-xl">🎬</span>
+                  <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500">
+                    <Activity className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">我的视频</h3>
-                    <p className="text-white/40 text-xs">跳同一支舞的视频</p>
+                    <h3 className="text-[15px] font-black text-gray-900">我的实时练习</h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Your Performance</p>
                   </div>
                 </div>
+                {video1 && (
+                  <button onClick={() => { setVideo1(null); setVideo1Url(''); }} className="text-rose-500 text-[10px] font-black uppercase tracking-widest p-2 hover:bg-rose-50 rounded-lg transition-colors">
+                    重新选择
+                  </button>
+                )}
               </div>
 
               {!video1 ? (
-                <div className="p-4">
-                  <div
-                    {...dropzone1.getRootProps()}
-                    className={`upload-zone ${dropzone1.isDragActive ? 'drag-active' : ''}`}
-                  >
-                    <input {...dropzone1.getInputProps()} />
-                    <Upload className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                    <p className="text-white font-medium text-sm">点击或拖拽上传</p>
-                    <p className="text-white/40 text-xs">MP4, MOV</p>
-                  </div>
+                <div
+                  {...dropzone1.getRootProps()}
+                  className={`
+                    border-2 border-dashed rounded-2xl p-12 transition-all text-center
+                    ${dropzone1.isDragActive ? 'border-blue-500 bg-blue-50/50' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50/30'}
+                  `}
+                >
+                  <input {...dropzone1.getInputProps()} />
+                  <Upload className="w-7 h-7 text-gray-300 mx-auto mb-3" />
+                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest">DRAG VIDEO HERE</p>
                 </div>
               ) : (
-                <div className="p-4">
-                  <div className="relative rounded-xl overflow-hidden bg-black">
-                    <video
-                      src={video1Url}
-                      className="w-full h-40 object-cover"
-                      controls
-                    />
-                    <button
-                      onClick={() => { setVideo1(null); setVideo1Url(''); setSyncResult(null) }}
-                      className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  {video1 && (
-                    <p className="text-white/50 text-xs mt-2 text-center">
-                      {video1.name} · {(video1.size / 1024 / 1024).toFixed(1)} MB
-                    </p>
-                  )}
+                <div className="relative rounded-2xl overflow-hidden aspect-video bg-gray-50 border border-gray-100 shadow-inner">
+                  <video src={video1Url} className="w-full h-full object-contain" />
                 </div>
               )}
             </div>
 
-            {/* 视频2 */}
-            <div className="card">
-              <div className="p-4 border-b border-[var(--border-color)]">
+            {/* 视频上传对 - 2 */}
+            <div className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100/50">
+              <div className="flex items-center justify-between mb-5 px-1">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                    <span className="text-xl">🌟</span>
+                  <div className="w-10 h-10 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-500">
+                    <Music className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">对比视频</h3>
-                    <p className="text-white/40 text-xs">大师或参考视频</p>
+                    <h3 className="text-[15px] font-black text-gray-900">大师参考视频</h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Master Reference</p>
                   </div>
                 </div>
+                {video2 && (
+                  <button onClick={() => { setVideo2(null); setVideo2Url(''); }} className="text-rose-500 text-[10px] font-black uppercase tracking-widest p-2 hover:bg-rose-50 rounded-lg transition-colors">
+                    重新选择
+                  </button>
+                )}
               </div>
 
               {!video2 ? (
-                <div className="p-4">
-                  <div
-                    {...dropzone2.getRootProps()}
-                    className={`upload-zone ${dropzone2.isDragActive ? 'drag-active' : ''}`}
-                  >
-                    <input {...dropzone2.getInputProps()} />
-                    <Upload className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                    <p className="text-white font-medium text-sm">点击或拖拽上传</p>
-                    <p className="text-white/40 text-xs">MP4, MOV</p>
-                  </div>
+                <div
+                  {...dropzone2.getRootProps()}
+                  className={`
+                    border-2 border-dashed rounded-2xl p-12 transition-all text-center
+                    ${dropzone2.isDragActive ? 'border-purple-500 bg-purple-50/50' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50/30'}
+                  `}
+                >
+                  <input {...dropzone2.getInputProps()} />
+                  <Upload className="w-7 h-7 text-gray-300 mx-auto mb-3" />
+                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest">DRAG REFERENCE HERE</p>
                 </div>
               ) : (
-                <div className="p-4">
-                  <div className="relative rounded-xl overflow-hidden bg-black">
-                    <video
-                      src={video2Url}
-                      className="w-full h-40 object-cover"
-                      controls
-                    />
-                    <button
-                      onClick={() => { setVideo2(null); setVideo2Url(''); setSyncResult(null) }}
-                      className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  {video2 && (
-                    <p className="text-white/50 text-xs mt-2 text-center">
-                      {video2.name} · {(video2.size / 1024 / 1024).toFixed(1)} MB
-                    </p>
-                  )}
+                <div className="relative rounded-2xl overflow-hidden aspect-video bg-gray-50 border border-gray-100 shadow-inner">
+                  <video src={video2Url} className="w-full h-full object-contain" />
                 </div>
               )}
             </div>
 
-            {/* 对齐按钮 */}
+            {/* AI 开始按钮 */}
             {video1 && video2 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={handleSync}
+                className="w-full py-5 bg-gray-900 text-white rounded-3xl font-black text-[15px] shadow-[0_20px_40px_rgba(0,0,0,0.1)] flex items-center justify-center gap-3 group transition-all active:scale-95"
               >
-                <button
-                  onClick={handleSync}
-                  className="btn btn-primary btn-lg btn-block animate-pulse-glow"
-                >
-                  <Music className="w-5 h-5" />
-                  开始音乐对齐
-                </button>
-                <p className="text-center text-white/40 text-xs mt-3">
-                  系统会通过音频指纹识别两段视频的时间偏移
-                </p>
-              </motion.div>
+                <span>准备开始 AI 节拍对齐</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </motion.button>
             )}
+            
+            <div className="bg-gray-50 rounded-[28px] p-5 border border-gray-100/50">
+              <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+                对齐原理说明
+              </h4>
+              <p className="text-[12px] leading-relaxed text-gray-500 font-medium italic">
+                AI 会提取两段视频的音频指纹，根据音乐节拍自动精准对齐，消除手动寻找同步点的烦恼。
+              </p>
+            </div>
           </motion.div>
         )}
 
-        {/* 同步中状态 */}
-        {step === 'syncing' && (
+        {/* 处理中状态 */}
+        {(step === 'syncing' || step === 'merging') && (
           <motion.div
-            key="syncing"
+            key="processing"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="card p-8 text-center"
+            className="bg-white rounded-[40px] p-12 text-center shadow-2xl shadow-gray-100 border border-gray-50 flex flex-col items-center"
           >
-            <div className="relative w-24 h-24 mx-auto mb-6">
-              <div className="absolute inset-0 rounded-full border-4 border-white/10" />
-              <div className="absolute inset-0 rounded-full border-4 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+            <div className="relative w-28 h-28 mb-8">
+              <div className="absolute inset-0 border-4 border-gray-50 rounded-full" />
+              <div className={`absolute inset-0 border-4 rounded-full animate-spin ${step === 'syncing' ? 'border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent' : 'border-t-emerald-500 border-r-transparent border-b-transparent border-l-transparent'}`} />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Music className="w-8 h-8 text-orange-500 animate-pulse" />
+                {step === 'syncing' ? <Music className="w-10 h-10 text-blue-500 animate-pulse" /> : <ArrowRight className="w-10 h-10 text-emerald-500" />}
               </div>
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">正在分析音频...</h3>
-            <p className="text-white/50 text-sm">
-              提取音频指纹 · 检测节拍 · 计算偏移
-            </p>
-          </motion.div>
-        )}
-
-        {/* 合并中状态 */}
-        {step === 'merging' && (
-          <motion.div
-            key="merging"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="card p-8 text-center"
-          >
-            <div className="relative w-24 h-24 mx-auto mb-6">
-              <div className="absolute inset-0 rounded-full border-4 border-white/10" />
-              <div className="absolute inset-0 rounded-full border-4 border-t-purple-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <ArrowRight className="w-8 h-8 text-purple-500" />
-              </div>
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2">正在合并视频...</h3>
-            <p className="text-white/50 text-sm">
-              对齐时间轴 · 拼接并排视频 · 生成预览
+            <h3 className="text-xl font-black text-gray-900 mb-2">
+              {step === 'syncing' ? '正在匹配音频指纹' : '正在合成并排预览'}
+            </h3>
+            <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+              {step === 'syncing' ? 'Analyzing Audio Beats...' : 'Generating Side-by-Side View...'}
             </p>
           </motion.div>
         )}
@@ -344,38 +303,39 @@ export default function VideoSyncUploader({ onSyncComplete }: VideoSyncUploaderP
         {step === 'player' && mergedVideoUrl && syncResult && video1 && video2 && (
           <motion.div
             key="player"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-6"
           >
-            {/* 调试按钮 */}
-            <div className="flex gap-2">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm border border-emerald-100">
+                  <Check className="w-5 h-5" strokeWidth={3} />
+                </div>
+                <div>
+                  <h3 className="text-[17px] font-black text-gray-900">AI 对齐已就绪</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Confidence: {Math.round(syncResult.confidence * 100)}%</span>
+                  </div>
+                </div>
+              </div>
               <button
                 onClick={() => setShowDebug(!showDebug)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  showDebug
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-white/10 text-white/70 hover:bg-white/20'
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  showDebug ? 'bg-orange-500 text-white shadow-lg shadow-orange-100' : 'bg-gray-100 text-gray-500'
                 }`}
               >
-                <Activity className="w-4 h-4" />
-                {showDebug ? '关闭调试' : '音频相位调试'}
+                {showDebug ? '隐藏调试区' : '手动调整对齐'}
               </button>
-              {manualAdjust !== 0 && (
-                <span className="px-3 py-2 bg-orange-500/20 text-orange-400 rounded-lg text-sm">
-                  手动调整: {manualAdjust > 0 ? '+' : ''}{manualAdjust.toFixed(2)}s
-                </span>
-              )}
             </div>
 
-            {/* 调试面板 */}
             <AnimatePresence>
               {showDebug && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
                 >
                   <SyncDebugPanel
                     video1={video1}
@@ -401,52 +361,26 @@ export default function VideoSyncUploader({ onSyncComplete }: VideoSyncUploaderP
         )}
       </AnimatePresence>
 
-      {/* 同步结果提示（仅显示错误） */}
-      {syncResult && !syncResult.success && (
+      {/* 错误模块 */}
+      {(error || (syncResult && !syncResult.success)) && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card p-5 bg-red-500/5 border-red-500/30"
+          className="bg-rose-50 border border-rose-100 p-5 rounded-[28px] flex items-start gap-4"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-              <AlertCircle className="w-5 h-5 text-red-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-red-400">对齐失败</h3>
-              <p className="text-white/50 text-xs">{syncResult.message}</p>
-            </div>
+          <div className="w-10 h-10 bg-rose-500 rounded-2xl flex items-center justify-center text-white flex-shrink-0 shadow-lg shadow-rose-200">
+            <AlertCircle className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-[14px] font-black text-rose-600 mb-1">对齐流程中断</h4>
+            <p className="text-[12px] font-medium text-rose-500 leading-tight">
+              {error || syncResult?.message}
+            </p>
+            <button onClick={handleReset} className="mt-3 text-[10px] font-black text-rose-600 uppercase tracking-widest border-b-2 border-rose-200">
+              重置并尝试手动上传
+            </button>
           </div>
         </motion.div>
-      )}
-
-      {/* 错误提示 */}
-      {error && !syncResult && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="card bg-red-500/10 border-red-500/30 p-4"
-        >
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-red-400" />
-            <p className="text-red-400 text-sm">{error}</p>
-          </div>
-        </motion.div>
-      )}
-
-      {/* 使用说明 */}
-      {step === 'upload' && (
-        <div className="card bg-white/5 p-5">
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <span className="text-orange-400">💡</span> 视频对齐说明
-          </h3>
-          <ul className="text-sm text-white/50 space-y-2">
-            <li>1. 上传两段跳同一支舞的视频</li>
-            <li>2. 系统通过音乐指纹自动对齐节拍</li>
-            <li>3. 播放合并后的并排视频</li>
-            <li>4. 在任意时刻选择帧进行姿态对比</li>
-          </ul>
-        </div>
       )}
     </div>
   )

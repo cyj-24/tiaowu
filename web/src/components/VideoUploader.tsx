@@ -1,5 +1,20 @@
 import { useState, useRef, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
+import { 
+  Upload, 
+  RotateCw, 
+  RotateCcw, 
+  FlipHorizontal, 
+  FlipVertical, 
+  RefreshCcw, 
+  Play, 
+  Pause, 
+  Scissors,
+  Check,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface VideoUploaderProps {
   onFrameExtracted: (imageBase64: string) => void
@@ -17,7 +32,7 @@ export default function VideoUploader({ onFrameExtracted, label }: VideoUploader
   const [isPlaying, setIsPlaying] = useState(false)
 
   // 视频变换状态
-  const [rotation, setRotation] = useState(0) // 0, 90, 180, 270
+  const [rotation, setRotation] = useState(0)
   const [flipH, setFlipH] = useState(false)
   const [flipV, setFlipV] = useState(false)
   const [showTransform, setShowTransform] = useState(false)
@@ -27,12 +42,10 @@ export default function VideoUploader({ onFrameExtracted, label }: VideoUploader
 
   const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000'
 
-  // 视频上传
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (!file) return
 
-    // 检查文件类型
     if (!file.type.startsWith('video/')) {
       alert('请上传视频文件')
       return
@@ -43,11 +56,9 @@ export default function VideoUploader({ onFrameExtracted, label }: VideoUploader
     setVideoUrl(url)
     setPreviewImage('')
     setKeyframes([])
-    // 重置变换状态
     resetTransform()
     setShowTransform(false)
 
-    // 获取视频信息并提取关键帧
     try {
       const formData = new FormData()
       formData.append('video', file)
@@ -77,73 +88,7 @@ export default function VideoUploader({ onFrameExtracted, label }: VideoUploader
     multiple: false
   })
 
-  // 视频时间更新
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime)
-    }
-  }
-
-  // 视频加载完成
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration)
-      // 设置到2秒位置（避开开头）
-      videoRef.current.currentTime = 2
-    }
-  }
-
-  // 时间轴拖动
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseFloat(e.target.value)
-    setCurrentTime(time)
-    if (videoRef.current) {
-      videoRef.current.currentTime = time
-    }
-  }
-
-  // 提取当前帧（应用变换）
-  const extractCurrentFrame = async () => {
-    if (!videoFile || !videoRef.current) return
-
-    setIsExtracting(true)
-    try {
-      // 先提取原始帧
-      const formData = new FormData()
-      formData.append('video', videoFile)
-      formData.append('timestamp', currentTime.toString())
-
-      const response = await fetch(`${API_BASE_URL}/api/extract-frame`, {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!response.ok) {
-        throw new Error('提取帧失败')
-      }
-
-      const data = await response.json()
-      if (!data.success) {
-        throw new Error(data.detail || '提取帧失败')
-      }
-
-      // 如果有变换，在前端应用
-      let finalImage = data.image
-      if (rotation !== 0 || flipH || flipV) {
-        finalImage = await applyTransformToImage(data.image, rotation, flipH, flipV)
-      }
-
-      setPreviewImage(finalImage)
-      onFrameExtracted(finalImage)
-    } catch (e) {
-      console.error('提取帧失败:', e)
-      alert('提取帧失败，请重试')
-    } finally {
-      setIsExtracting(false)
-    }
-  }
-
-  // 使用Canvas应用变换到图片
+  // 同步应用变换到图片
   const applyTransformToImage = (
     imageBase64: string,
     rot: number,
@@ -155,8 +100,6 @@ export default function VideoUploader({ onFrameExtracted, label }: VideoUploader
       img.onload = () => {
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')!
-
-        // 根据旋转角度设置画布尺寸
         if (rot === 90 || rot === 270) {
           canvas.width = img.height
           canvas.height = img.width
@@ -164,21 +107,49 @@ export default function VideoUploader({ onFrameExtracted, label }: VideoUploader
           canvas.width = img.width
           canvas.height = img.height
         }
-
         ctx.save()
         ctx.translate(canvas.width / 2, canvas.height / 2)
         ctx.rotate((rot * Math.PI) / 180)
         ctx.scale(fh ? -1 : 1, fv ? -1 : 1)
         ctx.drawImage(img, -img.width / 2, -img.height / 2)
         ctx.restore()
-
         resolve(canvas.toDataURL('image/jpeg', 0.95))
       }
       img.src = imageBase64
     })
   }
 
-  // 选择推荐的关键帧
+  const extractCurrentFrame = async () => {
+    if (!videoFile || !videoRef.current) return
+    setIsExtracting(true)
+    try {
+      const formData = new FormData()
+      formData.append('video', videoFile)
+      formData.append('timestamp', currentTime.toString())
+
+      const response = await fetch(`${API_BASE_URL}/api/extract-frame`, {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) throw new Error('提取帧失败')
+      const data = await response.json()
+      if (!data.success) throw new Error(data.detail || '提取帧失败')
+
+      let finalImage = data.image
+      if (rotation !== 0 || flipH || flipV) {
+        finalImage = await applyTransformToImage(data.image, rotation, flipH, flipV)
+      }
+      setPreviewImage(finalImage)
+      onFrameExtracted(finalImage)
+    } catch (e) {
+      console.error('提取帧失败:', e)
+      alert('提取帧失败，请重试')
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
   const selectKeyframe = (frame: {timestamp: number, image: string}) => {
     setCurrentTime(frame.timestamp)
     if (videoRef.current) {
@@ -188,272 +159,257 @@ export default function VideoUploader({ onFrameExtracted, label }: VideoUploader
     onFrameExtracted(frame.image)
   }
 
-  // 格式化时间
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60)
-    const seconds = Math.floor(time % 60)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
-
-  // 视频变换控制
-  const rotateLeft = () => setRotation((prev) => (prev - 90 + 360) % 360)
-  const rotateRight = () => setRotation((prev) => (prev + 90) % 360)
-  const toggleFlipH = () => setFlipH((prev) => !prev)
-  const toggleFlipV = () => setFlipV((prev) => !prev)
   const resetTransform = () => {
     setRotation(0)
     setFlipH(false)
     setFlipV(false)
   }
 
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60)
+    const seconds = Math.floor(time % 60)
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
+
   if (!videoFile) {
     return (
       <div
         {...getRootProps()}
-        className={`upload-zone ${isDragActive ? 'drag-active' : ''}`}
+        className={`
+          relative group cursor-pointer
+          border-2 border-dashed rounded-[32px] p-10
+          transition-all duration-300
+          ${isDragActive 
+            ? 'border-blue-500 bg-blue-50/50' 
+            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/30'
+          }
+        `}
       >
         <input {...getInputProps()} />
-        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-purple-50 flex items-center justify-center">
-          <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
+        <div className="flex flex-col items-center text-center">
+          <div className={`
+            w-16 h-16 rounded-3xl flex items-center justify-center mb-6
+            shadow-[0_8px_20px_rgba(0,0,0,0.04)] transition-transform duration-300 group-hover:scale-110
+            ${isDragActive ? 'bg-blue-500 text-white' : 'bg-white text-gray-400'}
+          `}>
+            <Upload className="w-8 h-8" strokeWidth={1.5} />
+          </div>
+          <h3 className="text-lg font-black text-gray-900 mb-1">{label}</h3>
+          <p className="text-gray-400 text-sm font-medium">点击或将视频文件拖拽至此</p>
+          <div className="mt-6 flex items-center gap-3">
+            <span className="px-3 py-1 bg-gray-100 rounded-full text-[10px] font-black text-gray-400 uppercase tracking-widest">MP4</span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full text-[10px] font-black text-gray-400 uppercase tracking-widest">MOV</span>
+          </div>
         </div>
-        <p className="text-gray-900 font-medium text-sm">{label}</p>
-        <p className="text-gray-400 text-xs mt-1">点击或拖拽上传视频</p>
-        <p className="text-gray-400 text-xs">支持 MP4, MOV</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      {/* 视频播放器 - 包装在变换容器中，但控制条不受影响 */}
-      <div className="relative bg-black rounded-lg overflow-hidden">
-        <div
-          className="w-full max-h-64 flex items-center justify-center transition-transform"
-          style={{
-            transform: `rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
-            transformOrigin: 'center center'
-          }}
-        >
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            className="max-w-full max-h-64"
-            style={{ touchAction: 'pan-y' }}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-          />
-        </div>
-        {/* 自定义播放控制条 */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-          <div className="flex items-center gap-3">
+    <div className="space-y-6">
+      {/* 视频工作台 */}
+      <div className="bg-white rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-gray-100/50">
+        {/* 透明变换容器 */}
+        <div className="relative bg-gray-50 group aspect-video flex items-center justify-center overflow-hidden">
+          <div
+            className="w-full h-full flex items-center justify-center transition-transform duration-500"
+            style={{
+              transform: `rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`
+            }}
+          >
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              className="w-full h-full object-contain"
+              onTimeUpdate={() => videoRef.current && setCurrentTime(videoRef.current.currentTime)}
+              onLoadedMetadata={() => videoRef.current && setDuration(videoRef.current.duration)}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+            />
+          </div>
+
+          {/* 视频浮动控制 */}
+          <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/20 to-transparent flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => {
                 if (videoRef.current) {
-                  if (isPlaying) {
-                    videoRef.current.pause();
-                  } else {
-                    videoRef.current.play();
-                  }
-                  setIsPlaying(!isPlaying);
+                  isPlaying ? videoRef.current.pause() : videoRef.current.play()
                 }
               }}
-              className="text-white hover:text-purple-300 transition-colors"
+              className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white hover:bg-white/30 transition-colors"
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                {isPlaying ? (
-                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                ) : (
-                  <path d="M8 5v14l11-7z"/>
-                )}
-              </svg>
+              {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current pl-0.5" />}
             </button>
-            <span className="text-white text-xs">
-              {formatTime(currentTime)} / {formatTime(duration)}
+            <div className="flex-1 h-1.5 bg-white/20 rounded-full relative overflow-hidden backdrop-blur-sm">
+              <div 
+                className="absolute top-0 left-0 h-full bg-white rounded-full transition-all duration-100"
+                style={{ width: `${(currentTime / duration) * 100}%` }}
+              />
+            </div>
+            <span className="text-[11px] font-black text-white/90 tabular-nums">
+              {formatTime(currentTime)}
             </span>
           </div>
         </div>
-      </div>
 
-      {/* 变换控制开关 */}
-      <button
-        onClick={() => setShowTransform(!showTransform)}
-        className="w-full py-2 text-sm text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
-      >
-        {showTransform ? '隐藏角度调整' : '调整视频角度 / 翻转'}
-      </button>
-
-      {/* 变换控制面板 */}
-      {showTransform && (
-        <div className="p-3 bg-gray-50 rounded-lg space-y-3">
-          <div className="flex flex-wrap gap-2 justify-center">
-            {/* 左旋转 */}
-            <button
-              onClick={rotateLeft}
-              className="flex items-center gap-1 px-3 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-              </svg>
-              左转
-            </button>
-
-            {/* 右旋转 */}
-            <button
-              onClick={rotateRight}
-              className="flex items-center gap-1 px-3 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
-              </svg>
-              右转
-            </button>
-
-            {/* 水平翻转 */}
-            <button
-              onClick={toggleFlipH}
-              className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm border ${
-                flipH ? 'bg-purple-100 text-purple-600 border-purple-300' : 'bg-white hover:bg-gray-50'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              左右
-            </button>
-
-            {/* 垂直翻转 */}
-            <button
-              onClick={toggleFlipV}
-              className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm border ${
-                flipV ? 'bg-purple-100 text-purple-600 border-purple-300' : 'bg-white hover:bg-gray-50'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-              </svg>
-              上下
-            </button>
-
-            {/* 重置 */}
-            <button
-              onClick={resetTransform}
-              className="flex items-center gap-1 px-3 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              重置
-            </button>
-          </div>
-
-          {/* 当前状态 */}
-          <div className="text-center text-xs text-gray-500">
-            旋转: {rotation}° | 左右: {flipH ? '翻转' : '正常'} | 上下: {flipV ? '翻转' : '正常'}
-          </div>
-
-          <div className="text-xs text-orange-500 text-center">
-            💡 调整后会实时预览，提取帧时会应用这些变换
-          </div>
-        </div>
-      )}
-
-      {/* 时间轴控制 */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-xs text-gray-500">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
-        <input
-          type="range"
-          min={0}
-          max={duration}
-          step={0.1}
-          value={currentTime}
-          onChange={handleSliderChange}
-          className="w-full ios-slider"
-        />
-      </div>
-
-      {/* 推荐关键帧 */}
-      {keyframes.length > 0 && (
-        <div>
-          <p className="text-sm text-gray-600 mb-2">推荐关键帧（点击选择）：</p>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {keyframes.map((frame, index) => (
-              <button
-                key={index}
-                onClick={() => selectKeyframe(frame)}
-                className={`flex-shrink-0 relative rounded-lg overflow-hidden border-2 transition-all ${
-                  Math.abs(currentTime - frame.timestamp) < 0.5
-                    ? 'border-blue-500 ring-2 ring-blue-200'
-                    : 'border-transparent hover:border-gray-300'
-                }`}
+        {/* 交互控制区域 */}
+        <div className="p-6 space-y-6">
+          {/* 变换工具栏切换 */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">播放进度控制</span>
+              <button 
+                onClick={() => setShowTransform(!showTransform)}
+                className="flex items-center gap-1.5 text-[11px] font-black text-blue-500 uppercase tracking-widest hover:text-blue-600 transition-colors"
               >
-                <img
-                  src={frame.image}
-                  alt={`关键帧 ${index + 1}`}
-                  className="w-24 h-16 object-cover"
-                />
-                <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-0.5">
-                  {formatTime(frame.timestamp)}
-                </span>
+                角度与翻转 {showTransform ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
-            ))}
+            </div>
+
+            <input
+              type="range"
+              min={0}
+              max={duration}
+              step={0.1}
+              value={currentTime}
+              onChange={(e) => {
+                const time = parseFloat(e.target.value)
+                setCurrentTime(time)
+                if (videoRef.current) videoRef.current.currentTime = time
+              }}
+              className="w-full h-2 bg-gray-100 rounded-full appearance-none cursor-pointer accent-gray-900"
+            />
+
+            <AnimatePresence>
+              {showTransform && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="grid grid-cols-5 gap-2 pt-2 pb-1">
+                    {[
+                      { icon: RotateCcw, action: () => setRotation((r) => (r - 90 + 360) % 360), label: '左转' },
+                      { icon: RotateCw, action: () => setRotation((r) => (r + 90) % 360), label: '右转' },
+                      { icon: FlipHorizontal, action: () => setFlipH(!flipH), active: flipH, label: '水平' },
+                      { icon: FlipVertical, action: () => setFlipV(!flipV), active: flipV, label: '垂直' },
+                      { icon: RefreshCcw, action: resetTransform, label: '重置' }
+                    ].map((tool, i) => (
+                      <button
+                        key={i}
+                        onClick={tool.action}
+                        className={`
+                          flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all
+                          ${tool.active 
+                            ? 'bg-blue-50 border-blue-200 text-blue-600' 
+                            : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200 hover:text-gray-600'
+                          }
+                        `}
+                      >
+                        <tool.icon className="w-4 h-4" />
+                        <span className="text-[10px] font-black">{tool.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* 推荐关键帧 */}
+          {keyframes.length > 0 && (
+            <div className="space-y-3">
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">AI 推荐关键帧</span>
+              <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-hide">
+                {keyframes.map((frame, index) => {
+                  const isActive = Math.abs(currentTime - frame.timestamp) < 0.5
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => selectKeyframe(frame)}
+                      className={`
+                        flex-shrink-0 group relative w-28 aspect-video rounded-xl overflow-hidden border-2 transition-all
+                        ${isActive ? 'border-blue-500 scale-95 shadow-lg' : 'border-transparent opacity-70 hover:opacity-100'}
+                      `}
+                    >
+                      <img src={frame.image} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 rounded text-[9px] font-bold text-white backdrop-blur-sm">
+                        {formatTime(frame.timestamp)}
+                      </span>
+                      {isActive && (
+                        <div className="absolute top-1 left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-sm scale-75">
+                          <Check className="w-3 h-3" strokeWidth={3} />
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 提取操作按钮 */}
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={extractCurrentFrame}
+              disabled={isExtracting}
+              className={`
+                w-full py-4 rounded-2xl font-black text-[15px] transition-all flex items-center justify-center gap-3 shadow-xl
+                ${isExtracting 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'bg-gray-900 text-white shadow-gray-200 hover:scale-[1.02] active:scale-[0.98]'
+                }
+              `}
+            >
+              {isExtracting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  <span>正在精准定位舞蹈动作...</span>
+                </>
+              ) : (
+                <>
+                  <Scissors className="w-5 h-5" />
+                  <span>锁定该舞姿进行分析</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setVideoFile(null)
+                setVideoUrl('')
+                setPreviewImage('')
+                setKeyframes([])
+                resetTransform()
+                setShowTransform(false)
+              }}
+              className="w-full py-3 text-sm font-black text-rose-500 hover:bg-rose-50 rounded-2xl transition-colors tracking-tight"
+            >
+              重新上传练习视频
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* 提取按钮 */}
-      <button
-        onClick={extractCurrentFrame}
-        disabled={isExtracting}
-        className="w-full ios-button ios-button-secondary"
-      >
-        {isExtracting ? (
-          <span className="flex items-center justify-center gap-2">
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-            提取中...
-          </span>
-        ) : (
-          '使用当前帧'
+      {/* 选定帧预览卡片 */}
+      <AnimatePresence>
+        {previewImage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-emerald-50/50 rounded-[28px] p-5 border border-emerald-100/50 flex flex-col gap-3"
+          >
+            <div className="flex items-center gap-2 px-1">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+              <span className="text-[12px] font-black text-emerald-700 tracking-tight">已锁定目标动作，准备开始分析</span>
+            </div>
+            <div className="relative rounded-2xl overflow-hidden aspect-video border border-emerald-200/30">
+              <img src={previewImage} className="w-full h-full object-cover" />
+            </div>
+          </motion.div>
         )}
-      </button>
-
-      {/* 预览 */}
-      {previewImage && (
-        <div className="border rounded-lg p-2">
-          <p className="text-xs text-gray-500 mb-2">已选择：</p>
-          <img
-            src={previewImage}
-            alt="选中的帧"
-            className="w-full rounded-lg"
-          />
-        </div>
-      )}
-
-      {/* 重新上传 */}
-      <button
-        onClick={() => {
-          setVideoFile(null)
-          setVideoUrl('')
-          setPreviewImage('')
-          setKeyframes([])
-          resetTransform()
-          setShowTransform(false)
-        }}
-        className="w-full py-2 text-red-500 text-sm font-medium"
-      >
-        重新上传视频
-      </button>
-
-      {/* 隐藏的画布用于提取帧 */}
+      </AnimatePresence>
       <canvas ref={canvasRef} className="hidden" />
     </div>
   )

@@ -200,116 +200,86 @@ export default function UploadPage({ onAnalysisComplete }: UploadPageProps) {
   if (mode === 'home') {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] pb-24">
-        {/* 简洁的顶部 */}
-        <header className="px-6 pt-8 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white">摇摆舞分析</h1>
-              <p className="text-white/50 text-xs">AI 辅助舞蹈姿态对比</p>
+        {/* 顶部 - 复古报刊风格 */}
+        <header className="px-6 pt-12 pb-8">
+          <div className="flex items-center justify-center text-center">
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <div className="w-8 h-px bg-[var(--text-primary)] opacity-20"></div>
+                <Sparkles className="w-5 h-5 text-[var(--primary)]" />
+                <div className="w-8 h-px bg-[var(--text-primary)] opacity-20"></div>
+              </div>
+              <h1 className="text-3xl font-extrabold text-[var(--text-primary)] uppercase tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                摇摆舞分析器
+              </h1>
+              <p className="text-[var(--text-secondary)] text-sm font-medium tracking-[0.2em] uppercase opacity-80">
+                Swing Dance · AI Motion Study
+              </p>
+              <div className="w-full h-1 border-y border-[var(--border-color)] mt-4"></div>
             </div>
           </div>
         </header>
 
-        {/* 功能卡片 */}
-        <div className="px-6 space-y-4 mt-4">
-          {/* 图片对比 */}
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={() => setMode('image')}
-            className="w-full card card-hover card-active p-5 text-left"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
-                <ImageIcon className="w-7 h-7 text-blue-400" />
+        {/* 功能卡片 - 复古拼色风格 */}
+        <div className="px-6 space-y-5">
+          {[
+            { id: 'image', icon: ImageIcon, title: '图片对比', desc: '上传照片进行两两姿态对比', color: 'var(--v-red)', light: 'var(--v-red-light)' },
+            { id: 'video', icon: Video, title: '视频截帧', desc: '从视频中精准提取关键帧', color: 'var(--v-green)', light: 'var(--v-green-light)' },
+            { id: 'sync', icon: Music, title: '自动对齐', desc: '同音乐视频自动对齐节拍', color: 'var(--v-gold)', light: 'var(--v-gold-light)' },
+            { id: 'calendar', icon: Calendar, title: '成长日记', desc: '追溯历史训练中的舞韵变化', color: 'var(--v-blue)', light: 'var(--v-blue-light)' }
+          ].map((item, index) => (
+            <motion.button
+              key={item.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.08 }}
+              onClick={() => setMode(item.id as Mode)}
+              className="w-full bg-[var(--bg-secondary)] rounded-2xl p-5 text-left shadow-[var(--shadow-sm)] border-2 hover:border-[var(--primary)] transition-all active:scale-[0.98] relative overflow-hidden group"
+              style={{ borderColor: item.color }}
+            >
+              {/* 背景斜纹装饰 */}
+              <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ background: `repeating-linear-gradient(45deg, ${item.color}, ${item.color} 10px, transparent 10px, transparent 20px)` }}></div>
+              
+              <div className="flex items-center gap-5 relative z-10">
+                <div 
+                  className="w-14 h-14 rounded-xl flex items-center justify-center border border-[var(--border-color)] group-hover:bg-[var(--text-primary)] transition-colors"
+                  style={{ backgroundColor: item.light, color: item.color }}
+                >
+                  <item.icon className="w-7 h-7" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-[var(--text-primary)] mb-0.5" style={{ fontFamily: 'var(--font-display)', color: item.color }}>{item.title}</h3>
+                  <p className="text-[var(--text-secondary)] text-xs font-medium opacity-70">{item.desc}</p>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center border border-[var(--border-color)]">
+                  <ChevronLeft className="w-4 h-4 text-[var(--text-primary)] rotate-180" />
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-white mb-1">图片对比</h3>
-                <p className="text-white/50 text-sm">直接上传两张跳舞照片进行姿态对比</p>
-              </div>
-              <ChevronLeft className="w-5 h-5 text-white/30 rotate-180" />
-            </div>
-          </motion.button>
-
-          {/* 视频对比 */}
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            onClick={() => setMode('video')}
-            className="w-full card card-hover card-active p-5 text-left"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-                <Video className="w-7 h-7 text-purple-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-white mb-1">视频截帧对比</h3>
-                <p className="text-white/50 text-sm">上传两段视频，手动选择关键帧进行对比</p>
-              </div>
-              <ChevronLeft className="w-5 h-5 text-white/30 rotate-180" />
-            </div>
-          </motion.button>
-
-          {/* 视频对齐 */}
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            onClick={() => setMode('sync')}
-            className="w-full card card-hover card-active p-5 text-left"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500/20 to-amber-500/20 flex items-center justify-center">
-                <Music className="w-7 h-7 text-orange-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-white mb-1">视频对齐</h3>
-                <p className="text-white/50 text-sm">两段相同音乐的视频自动对齐节拍后分析</p>
-              </div>
-              <ChevronLeft className="w-5 h-5 text-white/30 rotate-180" />
-            </div>
-          </motion.button>
-
-          {/* 从日历选择 */}
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            onClick={() => setMode('calendar')}
-            className="w-full card card-hover card-active p-5 text-left"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
-                <Calendar className="w-7 h-7 text-green-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-white mb-1">从日历选择</h3>
-                <p className="text-white/50 text-sm">从跳舞日历中选择已保存的视频进行分析</p>
-              </div>
-              <ChevronLeft className="w-5 h-5 text-white/30 rotate-180" />
-            </div>
-          </motion.button>
+            </motion.button>
+          ))}
         </div>
 
-        {/* 使用说明 */}
+        {/* 使用提示 */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
           className="px-6 mt-8"
         >
-          <div className="card bg-white/5 p-5">
-            <h3 className="text-sm font-semibold text-white mb-3">💡 如何选择？</h3>
-            <ul className="text-sm text-white/50 space-y-2">
-              <li><span className="text-orange-400">图片对比</span> - 已有照片，直接分析</li>
-              <li><span className="text-purple-400">视频截帧</span> - 从视频中自选关键帧</li>
-              <li><span className="text-amber-400">视频对齐</span> - 同音乐视频自动对齐</li>
-              <li><span className="text-green-400">从日历选择</span> - 使用日历中保存的视频</li>
-            </ul>
+          <div className="bg-[var(--bg-tertiary)] rounded-2xl p-5 border border-[var(--border-color)] relative">
+            <div className="absolute -top-3 left-6 px-3 py-1 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-bold uppercase tracking-widest rounded-sm">
+              Study Tips
+            </div>
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="p-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)]">
+                <p className="text-[10px] text-[var(--text-secondary)] mb-1 font-bold uppercase">Archive</p>
+                <p className="text-xs font-bold text-[var(--text-primary)]">图片对比更精准</p>
+              </div>
+              <div className="p-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)]">
+                <p className="text-[10px] text-[var(--text-secondary)] mb-1 font-bold uppercase">Rhythm</p>
+                <p className="text-xs font-bold text-[var(--text-primary)]">节拍同步一致性</p>
+              </div>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -330,18 +300,18 @@ export default function UploadPage({ onAnalysisComplete }: UploadPageProps) {
     <div className="min-h-screen bg-[var(--bg-primary)] pb-24">
       {/* 顶部导航 */}
       <header className="navbar">
-        <button onClick={goHome} className="navbar-back">
-          <ChevronLeft className="w-6 h-6" />
+        <button onClick={goHome} className="navbar-back flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors">
+          <ChevronLeft className="w-6 h-6 text-[var(--text-primary)]" />
         </button>
-        <h1 className="navbar-title">
+        <h1 className="navbar-title text-[var(--text-primary)] font-bold">
           {mode === 'image' && '图片对比'}
           {mode === 'video' && '视频截帧'}
           {mode === 'calendar' && '日历选择'}
         </h1>
-        <div className="w-9" />
+        <div className="w-10" />
       </header>
 
-      <div className="pt-[calc(var(--navbar-height)+var(--safe-top)+8px)] px-6">
+      <div className="pt-[calc(var(--navbar-height)+var(--safe-top)+16px)] px-6 space-y-6">
         {/* 错误提示 */}
         <AnimatePresence>
           {error && (
@@ -349,10 +319,9 @@ export default function UploadPage({ onAnalysisComplete }: UploadPageProps) {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-4"
             >
-              <div className="card bg-red-500/10 border-red-500/30 p-4">
-                <p className="text-red-400 text-sm text-center">{error}</p>
+              <div className="bg-red-50 border border-red-100 rounded-[20px] p-4 mb-4">
+                <p className="text-red-500 text-xs font-medium text-center">{error}</p>
               </div>
             </motion.div>
           )}
@@ -360,127 +329,117 @@ export default function UploadPage({ onAnalysisComplete }: UploadPageProps) {
 
         {/* 图片模式 */}
         {mode === 'image' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* 我的图片 */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card">
-              <div className="p-4 border-b border-[var(--border-color)]">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-50">
+              <div className="p-5 border-b border-gray-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                    <span className="text-xl">📸</span>
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <ImageIcon className="w-5 h-5 text-[#007AFF]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">我的舞姿</h3>
-                    <p className="text-white/40 text-xs">上传你的跳舞照片</p>
+                    <h3 className="font-bold text-[var(--text-primary)]">我的舞姿</h3>
+                    <p className="text-[var(--text-secondary)] text-[10px] uppercase font-bold tracking-wider opacity-60">Your Performance</p>
                   </div>
                 </div>
               </div>
 
-              {!myImage ? (
-                <div className="p-4">
-                  <div {...myDropzone.getRootProps()} className={`upload-zone ${myDropzone.isDragActive ? 'drag-active' : ''}`}>
+              <div className="p-5">
+                {!myImage ? (
+                  <div {...myDropzone.getRootProps()} className={`upload-zone border-2 border-dashed rounded-[24px] py-10 transition-all ${myDropzone.isDragActive ? 'border-[#007AFF] bg-blue-50/50' : 'border-gray-100 bg-gray-50/30'}`}>
                     <input {...myDropzone.getInputProps()} />
-                    <ImageIcon className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                    <p className="text-white font-medium text-sm">点击或拖拽上传</p>
-                    <p className="text-white/40 text-xs">PNG, JPG</p>
+                    <ImageIcon className="w-8 h-8 text-[#007AFF] mx-auto mb-2 opacity-50" />
+                    <p className="text-[var(--text-primary)] font-bold text-sm">上传你的照片</p>
+                    <p className="text-[var(--text-secondary)] text-[10px]">PNG, JPG up to 10MB</p>
                   </div>
-                </div>
-              ) : (
-                <div className="p-4">
-                  <ImagePreview image={myImage} persons={myPersons} selectedPerson={selectedMyPerson} onImageTransform={handleMyFrameExtracted} />
-                  {myPersons.length > 0 && (
-                    <div className="mt-4">
-                      <PersonSelector persons={myPersons} selected={selectedMyPerson} onSelect={setSelectedMyPerson} label="选择舞者" />
-                    </div>
-                  )}
-                  <button onClick={() => { setMyImage(null); setMyPersons([]); setSelectedMyPerson(null) }} className="w-full mt-4 py-3 text-red-400 text-sm font-medium">
-                    移除照片
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-4">
+                    <ImagePreview image={myImage} persons={myPersons} selectedPerson={selectedMyPerson} onImageTransform={handleMyFrameExtracted} />
+                    {myPersons.length > 0 && <PersonSelector persons={myPersons} selected={selectedMyPerson} onSelect={setSelectedMyPerson} label="识别结果" />}
+                    <button onClick={() => { setMyImage(null); setMyPersons([]); setSelectedMyPerson(null) }} className="w-full py-3 text-red-500 text-xs font-bold bg-red-50 rounded-2xl">
+                      重选照片
+                    </button>
+                  </div>
+                )}
+              </div>
             </motion.div>
 
             {/* 对比图片 */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card">
-              <div className="p-4 border-b border-[var(--border-color)]">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-50">
+              <div className="p-5 border-b border-gray-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                    <span className="text-xl">🌟</span>
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-purple-500" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">对比舞姿</h3>
-                    <p className="text-white/40 text-xs">上传大师或参考照片</p>
+                    <h3 className="font-bold text-[var(--text-primary)]">参考舞姿</h3>
+                    <p className="text-[var(--text-secondary)] text-[10px] uppercase font-bold tracking-wider opacity-60">Master Reference</p>
                   </div>
                 </div>
               </div>
 
-              {!masterImage ? (
-                <div className="p-4">
-                  <div {...masterDropzone.getRootProps()} className={`upload-zone ${masterDropzone.isDragActive ? 'drag-active' : ''}`}>
+              <div className="p-5">
+                {!masterImage ? (
+                  <div {...masterDropzone.getRootProps()} className={`upload-zone border-2 border-dashed rounded-[24px] py-10 transition-all ${masterDropzone.isDragActive ? 'border-[#8B5CF6] bg-purple-50/50' : 'border-gray-100 bg-gray-50/30'}`}>
                     <input {...masterDropzone.getInputProps()} />
-                    <ImageIcon className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                    <p className="text-white font-medium text-sm">点击或拖拽上传</p>
-                    <p className="text-white/40 text-xs">PNG, JPG</p>
+                    <ImageIcon className="w-8 h-8 text-purple-400 mx-auto mb-2 opacity-50" />
+                    <p className="text-[var(--text-primary)] font-bold text-sm">上传参考样张</p>
+                    <p className="text-[var(--text-secondary)] text-[10px]">PNG, JPG up to 10MB</p>
                   </div>
-                </div>
-              ) : (
-                <div className="p-4">
-                  <ImagePreview image={masterImage} persons={masterPersons} selectedPerson={selectedMasterPerson} onImageTransform={handleMasterFrameExtracted} />
-                  {masterPersons.length > 0 && (
-                    <div className="mt-4">
-                      <PersonSelector persons={masterPersons} selected={selectedMasterPerson} onSelect={setSelectedMasterPerson} label="选择舞者" />
-                    </div>
-                  )}
-                  <button onClick={() => { setMasterImage(null); setMasterPersons([]); setSelectedMasterPerson(null) }} className="w-full mt-4 py-3 text-red-400 text-sm font-medium">
-                    移除照片
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-4">
+                    <ImagePreview image={masterImage} persons={masterPersons} selectedPerson={selectedMasterPerson} onImageTransform={handleMasterFrameExtracted} />
+                    {masterPersons.length > 0 && <PersonSelector persons={masterPersons} selected={selectedMasterPerson} onSelect={setSelectedMasterPerson} label="识别结果" />}
+                    <button onClick={() => { setMasterImage(null); setMasterPersons([]); setSelectedMasterPerson(null) }} className="w-full py-3 text-red-500 text-xs font-bold bg-red-50 rounded-2xl">
+                      重选照片
+                    </button>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}
 
         {/* 视频模式 */}
         {mode === 'video' && (
-          <div className="space-y-4">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card">
-              <div className="p-4 border-b border-[var(--border-color)]">
+          <div className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-50">
+              <div className="p-5 border-b border-gray-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                    <span className="text-xl">🎬</span>
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <Video className="w-5 h-5 text-[#007AFF]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">我的视频</h3>
-                    <p className="text-white/40 text-xs">选择关键帧进行分析</p>
+                    <h3 className="font-bold text-[var(--text-primary)]">我的视频</h3>
                   </div>
                 </div>
               </div>
-              <div className="p-4">
+              <div className="p-5">
                 <VideoUploader onFrameExtracted={handleMyFrameExtracted} label="" />
                 {myImage && myPersons.length > 0 && (
-                  <div className="mt-4">
-                    <PersonSelector persons={myPersons} selected={selectedMyPerson} onSelect={setSelectedMyPerson} label="选择舞者" />
+                  <div className="mt-6">
+                    <PersonSelector persons={myPersons} selected={selectedMyPerson} onSelect={setSelectedMyPerson} label="识别舞者" />
                   </div>
                 )}
               </div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card">
-              <div className="p-4 border-b border-[var(--border-color)]">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-50">
+              <div className="p-5 border-b border-gray-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                    <span className="text-xl">🌟</span>
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-purple-500" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">对比视频</h3>
-                    <p className="text-white/40 text-xs">选择关键帧进行分析</p>
+                    <h3 className="font-bold text-[var(--text-primary)]">参考视频</h3>
                   </div>
                 </div>
               </div>
-              <div className="p-4">
+              <div className="p-5">
                 <VideoUploader onFrameExtracted={handleMasterFrameExtracted} label="" />
                 {masterImage && masterPersons.length > 0 && (
-                  <div className="mt-4">
-                    <PersonSelector persons={masterPersons} selected={selectedMasterPerson} onSelect={setSelectedMasterPerson} label="选择舞者" />
+                  <div className="mt-6">
+                    <PersonSelector persons={masterPersons} selected={selectedMasterPerson} onSelect={setSelectedMasterPerson} label="识别舞者" />
                   </div>
                 )}
               </div>
@@ -488,54 +447,24 @@ export default function UploadPage({ onAnalysisComplete }: UploadPageProps) {
           </div>
         )}
 
-        {/* 日历选择模式 */}
+        {/* 日历模式 */}
         {mode === 'calendar' && (
-          <div className="space-y-4">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card">
-              <div className="p-4 border-b border-[var(--border-color)]">
+          <div className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-50">
+              <div className="p-5 border-b border-gray-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                    <span className="text-xl">📸</span>
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-emerald-500" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-white">我的舞姿</h3>
-                    <p className="text-white/40 text-xs">从日历选择视频并截取关键帧</p>
-                  </div>
+                  <h3 className="font-bold text-[var(--text-primary)]">我的日历视频</h3>
                 </div>
               </div>
-              <div className="p-4">
+              <div className="p-5">
                 <CalendarVideoSelector onFrameSelected={(frame) => handleCalendarFrameSelected('my', frame)} />
                 {myImage && myPersons.length > 0 && (
-                  <div className="mt-4">
+                  <div className="mt-6 space-y-4">
                     <ImagePreview image={myImage} persons={myPersons} selectedPerson={selectedMyPerson} />
-                    <div className="mt-4">
-                      <PersonSelector persons={myPersons} selected={selectedMyPerson} onSelect={setSelectedMyPerson} label="选择舞者" />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card">
-              <div className="p-4 border-b border-[var(--border-color)]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                    <span className="text-xl">🌟</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white">对比舞姿</h3>
-                    <p className="text-white/40 text-xs">从日历选择视频并截取关键帧</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4">
-                <CalendarVideoSelector onFrameSelected={(frame) => handleCalendarFrameSelected('master', frame)} />
-                {masterImage && masterPersons.length > 0 && (
-                  <div className="mt-4">
-                    <ImagePreview image={masterImage} persons={masterPersons} selectedPerson={selectedMasterPerson} />
-                    <div className="mt-4">
-                      <PersonSelector persons={masterPersons} selected={selectedMasterPerson} onSelect={setSelectedMasterPerson} label="选择舞者" />
-                    </div>
+                    <PersonSelector persons={myPersons} selected={selectedMyPerson} onSelect={setSelectedMyPerson} label="识别结果" />
                   </div>
                 )}
               </div>
@@ -544,18 +473,36 @@ export default function UploadPage({ onAnalysisComplete }: UploadPageProps) {
         )}
 
         {/* 分析按钮 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="pt-6">
-          <button onClick={handleAnalyze} disabled={!canAnalyze || isLoading} className={`btn btn-primary btn-lg btn-block ${canAnalyze ? 'animate-pulse-glow' : ''}`}>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          className="pt-6 pb-12"
+        >
+          <button 
+            onClick={handleAnalyze} 
+            disabled={!canAnalyze || isLoading} 
+            className={`
+              w-full py-5 rounded-[24px] text-lg font-bold transition-all duration-300
+              flex items-center justify-center gap-3 shadow-lg
+              ${canAnalyze && !isLoading
+                ? 'bg-[#1C1C1E] text-white active:scale-[0.98]'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }
+            `}
+          >
             {isLoading ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <div className="flex items-center gap-3">
+                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                分析中...
-              </span>
+                <span>分析中...</span>
+              </div>
             ) : (
-              '开始分析'
+              <>
+                <Sparkles className={`w-6 h-6 ${canAnalyze ? 'text-[#007AFF]' : 'text-gray-300'}`} />
+                <span>开始深度分析</span>
+              </>
             )}
           </button>
         </motion.div>

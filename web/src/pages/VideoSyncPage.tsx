@@ -5,10 +5,9 @@ import {
   Upload, Music, Check, AlertCircle,
   Play, Pause, Activity, Settings2,
   Video, Sparkles, ChevronRight, RotateCcw,
-  Camera
+  Camera, ChevronLeft
 } from 'lucide-react'
-import { syncVideos, mergeVideos, VideoSyncResult } from '../utils/api'
-import { extractFrameFromVideo } from '../utils/api'
+import { syncVideos, mergeVideos, VideoSyncResult, extractFrameFromVideo } from '../utils/api'
 
 // 步骤类型
 type Step = 'upload' | 'syncing' | 'preview'
@@ -79,7 +78,6 @@ export default function VideoSyncPage({ onSyncComplete }: VideoSyncPageProps) {
   // 开始对齐
   const handleSync = async () => {
     if (!video1 || !video2) return
-
     setStep('syncing')
     setError(null)
 
@@ -104,62 +102,47 @@ export default function VideoSyncPage({ onSyncComplete }: VideoSyncPageProps) {
     }
   }
 
-  // 重新对齐（带手动调整）
+  // 重新对齐
   const handleReMerge = async () => {
     if (!video1 || !video2 || !syncResult) return
-
     try {
       const newOffset = syncResult.offset + manualOffset
       const mergedBlob = await mergeVideos(video1, video2, newOffset)
       const mergedUrl = URL.createObjectURL(mergedBlob)
-
-      if (mergedVideoUrl) {
-        URL.revokeObjectURL(mergedVideoUrl)
-      }
-
+      if (mergedVideoUrl) URL.revokeObjectURL(mergedVideoUrl)
       setMergedVideoUrl(mergedUrl)
     } catch (err: any) {
       setError(err.message || '重新合并失败')
     }
   }
 
-  // 播放控制
   const togglePlay = () => {
     const video = videoRef.current
     if (!video) return
-
-    if (isPlaying) {
-      video.pause()
-    } else {
-      video.play()
-    }
+    if (isPlaying) video.pause()
+    else video.play()
     setIsPlaying(!isPlaying)
   }
 
-  // 计算当前时间对应的两个视频的原始时间
   const getOriginalTimes = useCallback((mergedTime: number) => {
     if (!syncResult) return { time1: 0, time2: 0 }
-    const start1 = Math.max(0, syncResult.offset)
-    const start2 = Math.max(0, -syncResult.offset)
+    const start1 = Math.max(0, syncResult.offset + manualOffset)
+    const start2 = Math.max(0, -(syncResult.offset + manualOffset))
     return {
       time1: start1 + mergedTime,
       time2: start2 + mergedTime
     }
-  }, [syncResult])
+  }, [syncResult, manualOffset])
 
-  // 提取当前帧
   const handleExtractFrame = useCallback(async () => {
     if (!video1 || !video2 || !syncResult || !onSyncComplete) return
-
     setIsExtracting(true)
     try {
       const { time1, time2 } = getOriginalTimes(currentTime)
-
       const [result1, result2] = await Promise.all([
         extractFrameFromVideo(video1, time1),
         extractFrameFromVideo(video2, time2)
       ])
-
       if (result1.success && result2.success) {
         onSyncComplete(syncResult, result1.image, result2.image, video1, video2)
       }
@@ -170,7 +153,6 @@ export default function VideoSyncPage({ onSyncComplete }: VideoSyncPageProps) {
     }
   }, [currentTime, getOriginalTimes, video1, video2, syncResult, onSyncComplete])
 
-  // 重置
   const handleReset = () => {
     setStep('upload')
     setVideo1(null)
@@ -185,11 +167,11 @@ export default function VideoSyncPage({ onSyncComplete }: VideoSyncPageProps) {
 
   // 步骤指示器
   const StepIndicator = () => (
-    <div className="flex items-center justify-center gap-2 py-6">
+    <div className="flex items-center justify-center gap-2 py-8">
       {[
-        { id: 'upload', label: '上传视频', icon: Video },
-        { id: 'syncing', label: '智能对齐', icon: Activity },
-        { id: 'preview', label: '预览对比', icon: Play }
+        { id: 'upload', label: '素材上传', icon: Video },
+        { id: 'syncing', label: '核心算法', icon: Activity },
+        { id: 'preview', label: '对齐效果', icon: Play }
       ].map((s, index) => {
         const isActive = step === s.id
         const isCompleted =
@@ -199,15 +181,15 @@ export default function VideoSyncPage({ onSyncComplete }: VideoSyncPageProps) {
         return (
           <div key={s.id} className="flex items-center">
             <div className={`
-              flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300
-              ${isActive ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30' : ''}
-              ${isCompleted ? 'bg-white/10 text-orange-400' : 'bg-white/5 text-white/40'}
+              flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-500
+              ${isActive ? 'bg-[#007AFF] text-white shadow-[0_4px_15px_rgba(0,122,255,0.3)]' : ''}
+              ${isCompleted ? 'bg-blue-50 text-blue-600' : isActive ? '' : 'text-gray-300'}
             `}>
               <s.icon className="w-4 h-4" />
-              <span className="text-sm font-medium">{s.label}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{s.label}</span>
             </div>
             {index < 2 && (
-              <ChevronRight className="w-4 h-4 text-white/20 mx-2" />
+              <ChevronRight className="w-4 h-4 text-gray-200 mx-2" />
             )}
           </div>
         )
@@ -216,37 +198,31 @@ export default function VideoSyncPage({ onSyncComplete }: VideoSyncPageProps) {
   )
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] pb-24">
-      {/* 顶部导航 */}
-      <header className="sticky top-0 z-50 bg-[#0F0F0F]/95 backdrop-blur-xl border-b border-white/5">
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white">视频对齐</h1>
-              <p className="text-white/40 text-xs">AI 智能节拍同步</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[var(--bg-primary)] pb-24">
+      {/* 顶部饰条 */}
+      <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-blue-50/50 to-transparent pointer-events-none" />
 
-          {step === 'preview' && (
-            <button
-              onClick={() => setShowDebug(!showDebug)}
-              className={`p-2 rounded-xl transition-colors ${
-                showDebug ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/60'
-              }`}
-            >
-              <Settings2 className="w-5 h-5" />
-            </button>
-          )}
-        </div>
+      {/* 导航栏 */}
+      <header className="navbar">
+        <button onClick={handleReset} className="navbar-back flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors">
+          <ChevronLeft className="w-6 h-6 text-[var(--text-primary)]" />
+        </button>
+        <h1 className="navbar-title text-[var(--text-primary)] font-bold">智能对齐</h1>
+        {step === 'preview' ? (
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${
+              showDebug ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-50 text-gray-400'
+            }`}
+          >
+            <Settings2 className="w-5 h-5" />
+          </button>
+        ) : <div className="w-10" />}
       </header>
 
-      {/* 步骤指示器 */}
-      <StepIndicator />
+      <div className="relative pt-[calc(var(--navbar-height)+var(--safe-top)+8px)] px-6 max-w-2xl mx-auto">
+        <StepIndicator />
 
-      <div className="px-4 max-w-2xl mx-auto">
         <AnimatePresence mode="wait">
           {/* 上传步骤 */}
           {step === 'upload' && (
@@ -255,265 +231,199 @@ export default function VideoSyncPage({ onSyncComplete }: VideoSyncPageProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-4"
+              className="space-y-6"
             >
-              {/* 主标题 */}
-              <div className="text-center py-8">
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  上传两段舞蹈视频
-                </h2>
-                <p className="text-white/50">
-                  系统会自动识别音乐节拍并精准对齐
-                </p>
+              {/* 我的视频 */}
+              <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-50/50">
+                 <div className="p-5 border-b border-gray-50 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                       <Video className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                       <h3 className="font-bold text-[var(--text-primary)]">我的录制</h3>
+                       <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Your Performance</p>
+                    </div>
+                 </div>
+
+                 <div className="p-5">
+                    {!video1 ? (
+                       <div 
+                         {...dropzone1.getRootProps()} 
+                         className="border-2 border-dashed border-gray-100 rounded-[24px] py-10 text-center hover:border-blue-200 hover:bg-blue-50/20 transition-all cursor-pointer"
+                       >
+                          <input {...dropzone1.getInputProps()} />
+                          <Upload className="w-8 h-8 text-blue-600 mx-auto mb-2 opacity-50" />
+                          <p className="text-[var(--text-primary)] font-bold text-sm">选择你的舞蹈视频</p>
+                       </div>
+                    ) : (
+                       <div className="relative rounded-[24px] overflow-hidden bg-gray-900 shadow-xl">
+                          <video src={video1Url} className="w-full aspect-video object-cover" />
+                          <button 
+                            onClick={() => { setVideo1(null); setVideo1Url('') }}
+                            className="absolute top-3 right-3 w-8 h-8 bg-black/50 backdrop-blur-md text-white rounded-full flex items-center justify-center border border-white/20"
+                          >
+                             <RotateCcw className="w-4 h-4" />
+                          </button>
+                       </div>
+                    )}
+                 </div>
               </div>
 
-              {/* 视频1上传卡片 */}
-              <motion.div
-                className="bg-[#1C1C1E] rounded-2xl overflow-hidden border border-white/5"
-                whileHover={{ scale: 1.01 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="p-4 border-b border-white/5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center">
-                      <span className="text-xl">🎬</span>
+              {/* 参考视频 */}
+              <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-50/50">
+                 <div className="p-5 border-b border-gray-50 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                       <Sparkles className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white">我的视频</h3>
-                      <p className="text-white/40 text-sm">你的舞蹈录制</p>
+                       <h3 className="font-bold text-[var(--text-primary)]">参考素材</h3>
+                       <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Master Reference</p>
                     </div>
-                  </div>
-                </div>
+                 </div>
 
-                {!video1 ? (
-                  <div className="p-4">
-                    <div
-                      {...dropzone1.getRootProps()}
-                      className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-orange-500/50 hover:bg-orange-500/5 transition-all cursor-pointer"
+                 <div className="p-5">
+                    {!video2 ? (
+                       <div 
+                         {...dropzone2.getRootProps()} 
+                         className="border-2 border-dashed border-gray-100 rounded-[24px] py-10 text-center hover:border-purple-200 hover:bg-purple-50/20 transition-all cursor-pointer"
+                       >
+                          <input {...dropzone2.getInputProps()} />
+                          <Upload className="w-8 h-8 text-purple-600 mx-auto mb-2 opacity-50" />
+                          <p className="text-[var(--text-primary)] font-bold text-sm">上传对比样张视频</p>
+                       </div>
+                    ) : (
+                       <div className="relative rounded-[24px] overflow-hidden bg-gray-900 shadow-xl">
+                          <video src={video2Url} className="w-full aspect-video object-cover" />
+                          <button 
+                            onClick={() => { setVideo2(null); setVideo2Url('') }}
+                            className="absolute top-3 right-3 w-8 h-8 bg-black/50 backdrop-blur-md text-white rounded-full flex items-center justify-center border border-white/20"
+                          >
+                             <RotateCcw className="w-4 h-4" />
+                          </button>
+                       </div>
+                    )}
+                 </div>
+              </div>
+
+              {/* 对齐动作 */}
+              <AnimatePresence>
+                {video1 && video2 && (
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="pt-4">
+                    <button
+                      onClick={handleSync}
+                      className="w-full py-5 bg-[#1C1C1E] text-white rounded-[24px] font-black text-lg shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
                     >
-                      <input {...dropzone1.getRootProps()} />
-                      <Upload className="w-10 h-10 text-orange-500 mx-auto mb-3" />
-                      <p className="text-white font-medium">点击或拖拽上传</p>
-                      <p className="text-white/40 text-sm mt-1">支持 MP4, MOV 格式</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4">
-                    <div className="relative rounded-xl overflow-hidden bg-black">
-                      <video
-                        src={video1Url}
-                        className="w-full h-48 object-cover"
-                        controls
-                      />
-                      <button
-                        onClick={() => { setVideo1(null); setVideo1Url('') }}
-                        className="absolute top-2 right-2 w-8 h-8 bg-red-500/80 text-white rounded-full flex items-center justify-center text-sm"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <p className="text-white/50 text-xs mt-2 text-center">
-                      {video1.name} · {(video1.size / 1024 / 1024).toFixed(1)} MB
-                    </p>
-                  </div>
+                      <Music className="w-6 h-6 text-blue-500" />
+                      立即启动智能对齐
+                    </button>
+                  </motion.div>
                 )}
-              </motion.div>
+              </AnimatePresence>
 
-              {/* 视频2上传卡片 */}
-              <motion.div
-                className="bg-[#1C1C1E] rounded-2xl overflow-hidden border border-white/5"
-                whileHover={{ scale: 1.01 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="p-4 border-b border-white/5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center">
-                      <span className="text-xl">🌟</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-white">参考视频</h3>
-                      <p className="text-white/40 text-sm">大师或对比视频</p>
-                    </div>
-                  </div>
-                </div>
-
-                {!video2 ? (
-                  <div className="p-4">
-                    <div
-                      {...dropzone2.getRootProps()}
-                      className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-orange-500/50 hover:bg-orange-500/5 transition-all cursor-pointer"
-                    >
-                      <input {...dropzone2.getRootProps()} />
-                      <Upload className="w-10 h-10 text-orange-500 mx-auto mb-3" />
-                      <p className="text-white font-medium">点击或拖拽上传</p>
-                      <p className="text-white/40 text-sm mt-1">支持 MP4, MOV 格式</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4">
-                    <div className="relative rounded-xl overflow-hidden bg-black">
-                      <video
-                        src={video2Url}
-                        className="w-full h-48 object-cover"
-                        controls
-                      />
-                      <button
-                        onClick={() => { setVideo2(null); setVideo2Url('') }}
-                        className="absolute top-2 right-2 w-8 h-8 bg-red-500/80 text-white rounded-full flex items-center justify-center text-sm"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <p className="text-white/50 text-xs mt-2 text-center">
-                      {video2.name} · {(video2.size / 1024 / 1024).toFixed(1)} MB
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-
-              {/* 对齐按钮 */}
-              {video1 && video2 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="pt-4"
-                >
-                  <button
-                    onClick={handleSync}
-                    className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-semibold text-lg shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <Music className="w-5 h-5" />
-                    开始智能对齐
-                  </button>
-                  <p className="text-center text-white/40 text-sm mt-3">
-                    AI 将自动分析音频节拍并计算最佳同步点
-                  </p>
-                </motion.div>
-              )}
-
-              {/* 错误提示 */}
               {error && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3"
-                >
-                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <p className="text-red-400 text-sm">{error}</p>
-                </motion.div>
+                <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-500" />
+                  <p className="text-red-500 text-xs font-bold">{error}</p>
+                </div>
               )}
             </motion.div>
           )}
 
-          {/* 对齐中步骤 */}
+          {/* 对齐核心算法状态 */}
           {step === 'syncing' && (
             <motion.div
               key="syncing"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               className="flex flex-col items-center justify-center py-20"
             >
-              <div className="relative w-32 h-32 mb-8">
-                <div className="absolute inset-0 rounded-full border-4 border-white/5" />
-                <div className="absolute inset-0 rounded-full border-4 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Activity className="w-10 h-10 text-orange-500 animate-pulse" />
-                </div>
+              <div className="relative w-40 h-40 mb-10">
+                 <div className="absolute inset-0 rounded-full border-2 border-dashed border-blue-100 animate-[spin_10s_linear_infinite]" />
+                 <div className="absolute inset-4 rounded-full bg-blue-50 flex items-center justify-center">
+                    <Activity className="w-12 h-12 text-blue-600 animate-pulse" />
+                 </div>
+                 {[0, 1, 2, 3].map(i => (
+                    <motion.div 
+                      key={i}
+                      className="absolute inset-0 border-2 border-blue-500 rounded-full"
+                      initial={{ scale: 0.8, opacity: 0.5 }}
+                      animate={{ scale: 1.5, opacity: 0 }}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
+                    />
+                 ))}
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">正在分析音频...</h3>
-              <p className="text-white/50 text-center">
-                提取音频特征 · 检测节拍 · 计算同步点
+              <h3 className="text-2xl font-black text-[var(--text-primary)] tracking-tight mb-2 text-center">AI 节拍对齐中...</h3>
+              <p className="text-[var(--text-secondary)] text-sm font-bold opacity-40 text-center uppercase tracking-widest">
+                Analyzing waveform • Computing Phase
               </p>
             </motion.div>
           )}
 
-          {/* 预览步骤 */}
+          {/* 预览对比视图 */}
           {step === 'preview' && syncResult && (
             <motion.div
               key="preview"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-4"
+              className="space-y-6"
             >
-              {/* 对齐结果卡片 */}
-              <div className="bg-[#1C1C1E] rounded-2xl p-4 border border-white/5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-                      <Check className="w-5 h-5 text-green-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">对齐成功</p>
-                      <p className="text-white/40 text-sm">
-                        偏移 {syncResult.offset > 0 ? '+' : ''}{syncResult.offset.toFixed(2)}s ·
-                        置信度 {(syncResult.confidence * 100).toFixed(0)}%
-                      </p>
-                    </div>
+              <div className="bg-white rounded-[32px] p-5 shadow-sm border border-gray-50 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                    <Check className="w-6 h-6 text-emerald-600" />
                   </div>
-                  <button
-                    onClick={handleReset}
-                    className="p-2 text-white/40 hover:text-white"
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                  </button>
+                  <div>
+                    <p className="text-[var(--text-primary)] font-black text-sm tracking-tight">智能对齐成功</p>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase">
+                      Confidence {(syncResult.confidence * 100).toFixed(0)}% • Sync Offset {syncResult.offset.toFixed(2)}s
+                    </p>
+                  </div>
                 </div>
+                <button onClick={handleReset} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
+                  <RotateCcw className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* 调试面板 */}
+              {/* 微调控制面板 */}
               <AnimatePresence>
                 {showDebug && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="bg-[#1C1C1E] rounded-2xl p-4 border border-white/5"
+                    className="bg-white rounded-[32px] p-6 shadow-xl border border-blue-100"
                   >
-                    <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                      <Settings2 className="w-4 h-4 text-orange-400" />
-                      手动微调
-                    </h4>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="range"
-                          min="-3"
-                          max="3"
-                          step="0.01"
-                          value={manualOffset}
-                          onChange={(e) => setManualOffset(parseFloat(e.target.value))}
-                          className="flex-1 h-2 bg-white/10 rounded-lg appearance-none"
-                        />
-                        <span className="text-orange-400 font-mono text-sm w-16 text-right">
+                    <div className="flex items-center justify-between mb-6">
+                       <h4 className="font-black text-[var(--text-primary)] uppercase tracking-widest text-xs">Manual Sync Tuning</h4>
+                       <span className="text-blue-600 font-mono font-black text-sm">
                           {manualOffset > 0 ? '+' : ''}{manualOffset.toFixed(2)}s
-                        </span>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleReMerge}
-                          className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium transition-colors"
-                        >
-                          应用调整 ({(syncResult.offset + manualOffset).toFixed(2)}s)
-                        </button>
-                        <button
-                          onClick={() => setManualOffset(0)}
-                          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm transition-colors"
-                        >
-                          重置
-                        </button>
-                      </div>
+                       </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-2"
+                      max="2"
+                      step="0.01"
+                      value={manualOffset}
+                      onChange={(e) => setManualOffset(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-gray-100 rounded-full appearance-none accent-blue-600 mb-8"
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <button onClick={handleReMerge} className="py-4 bg-[#1C1C1E] text-white rounded-2xl font-bold text-sm shadow-xl active:scale-95 transition-all">
+                        重制预览
+                      </button>
+                      <button onClick={() => setManualOffset(0)} className="py-4 bg-gray-50 text-[var(--text-secondary)] rounded-2xl font-bold text-sm active:scale-95 transition-all">
+                        还原默认
+                      </button>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* 视频播放器 */}
+              {/* 核心预览播放器 */}
               {mergedVideoUrl && (
-                <div className="bg-[#1C1C1E] rounded-2xl overflow-hidden border border-white/5">
-                  <div className="relative aspect-video bg-black">
+                <div className="bg-white rounded-[40px] overflow-hidden shadow-2xl border border-gray-100 p-2">
+                  <div className="relative aspect-video bg-gray-900 rounded-[32px] overflow-hidden group">
                     <video
                       ref={videoRef}
                       src={mergedVideoUrl}
@@ -524,66 +434,45 @@ export default function VideoSyncPage({ onSyncComplete }: VideoSyncPageProps) {
                       onEnded={() => setIsPlaying(false)}
                       onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
                     />
-
-                    {/* 播放按钮覆盖层 */}
                     {!isPlaying && (
-                      <button
-                        onClick={togglePlay}
-                        className="absolute inset-0 flex items-center justify-center bg-black/40"
-                      >
-                        <div className="w-16 h-16 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                          <Play className="w-8 h-8 text-white ml-1" />
+                      <button onClick={togglePlay} className="absolute inset-0 bg-white/5 backdrop-blur-[2px] flex items-center justify-center transition-all group-hover:backdrop-blur-sm">
+                        <div className="w-20 h-20 bg-white rounded-full shadow-2xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-500">
+                           <Play className="w-8 h-8 text-blue-600 ml-1.5" />
                         </div>
                       </button>
                     )}
                   </div>
 
-                  {/* 控制栏 */}
-                  <div className="p-4 flex items-center justify-between">
-                    <div className="flex items-center justify-center gap-4 flex-1">
-                      <button
-                        onClick={togglePlay}
-                        className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/30"
-                      >
-                        {isPlaying ? (
-                          <Pause className="w-5 h-5" />
-                        ) : (
-                          <Play className="w-5 h-5 ml-0.5" />
-                        )}
-                      </button>
-                    </div>
-
+                  <div className="p-6 flex items-center justify-between">
+                    <button
+                      onClick={togglePlay}
+                      className="w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xl shadow-blue-500/30 active:scale-90 transition-all"
+                    >
+                      {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
+                    </button>
+                    
                     {onSyncComplete && (
                       <button
                         onClick={handleExtractFrame}
                         disabled={isExtracting}
-                        className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                        className="px-8 py-4 bg-gray-50 hover:bg-blue-50 text-[var(--text-primary)] hover:text-blue-600 rounded-[24px] font-black text-sm transition-all flex items-center gap-3 disabled:opacity-50"
                       >
                         {isExtracting ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            提取中...
-                          </>
-                        ) : (
-                          <>
-                            <Camera className="w-4 h-4" />
-                            选择当前帧
-                          </>
-                        )}
+                          <div className="w-5 h-5 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+                        ) : <Camera className="w-5 h-5" />}
+                        使用此对比点
                       </button>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* 使用提示 */}
-              <div className="bg-gradient-to-r from-orange-500/10 to-purple-500/10 rounded-2xl p-4 border border-orange-500/20">
-                <h4 className="text-white font-medium mb-2">💡 使用提示</h4>
-                <ul className="text-white/60 text-sm space-y-1">
-                  <li>• 播放视频检查同步效果</li>
-                  <li>• 如需微调，点击右上角设置按钮</li>
-                  <li>• 满意后可截图或录屏保存对比</li>
-                </ul>
+              {/* 贴士 */}
+              <div className="bg-blue-50/50 rounded-3xl p-6 border border-blue-50">
+                 <h4 className="text-blue-600 text-xs font-black uppercase tracking-widest mb-3">Training Insight</h4>
+                 <p className="text-[var(--text-primary)] text-sm font-medium leading-relaxed opacity-60">
+                   对齐后你可以清晰看到两者在节拍对应上的身体幅度。建议选择“大招”时刻进行提取分析。
+                 </p>
               </div>
             </motion.div>
           )}

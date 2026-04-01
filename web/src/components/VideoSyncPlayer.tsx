@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Pause, Camera, SkipBack, SkipForward, RotateCcw } from 'lucide-react'
 
 interface VideoSyncPlayerProps {
@@ -31,13 +31,11 @@ export default function VideoSyncPlayer({
   const [isExtracting, setIsExtracting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // 计算有效时长（取两个视频中较短的有效时长）
   const effectiveDuration = Math.min(
     syncResult.video1_duration - Math.max(0, syncResult.offset),
     syncResult.video2_duration - Math.max(0, -syncResult.offset)
   )
 
-  // 当视频源变化时重置状态
   useEffect(() => {
     setIsPlaying(false)
     setCurrentTime(0)
@@ -48,14 +46,8 @@ export default function VideoSyncPlayer({
     const video = videoRef.current
     if (!video) return
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime)
-    }
-
-    const handleLoadedMetadata = () => {
-      setDuration(video.duration)
-    }
-
+    const handleTimeUpdate = () => setCurrentTime(video.currentTime)
+    const handleLoadedMetadata = () => setDuration(video.duration)
     const handlePlay = () => setIsPlaying(true)
     const handlePause = () => setIsPlaying(false)
     const handleEnded = () => setIsPlaying(false)
@@ -66,87 +58,45 @@ export default function VideoSyncPlayer({
     video.addEventListener('pause', handlePause)
     video.addEventListener('ended', handleEnded)
 
-    // 防止视频拦截滚动
-    const preventScrollLock = () => {
-      video.blur()
-    }
-
-    // 视频加载后延迟移除焦点
-    video.addEventListener('loadeddata', preventScrollLock)
-
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate)
       video.removeEventListener('loadedmetadata', handleLoadedMetadata)
       video.removeEventListener('play', handlePlay)
       video.removeEventListener('pause', handlePause)
       video.removeEventListener('ended', handleEnded)
-      video.removeEventListener('loadeddata', preventScrollLock)
     }
   }, [mergedVideoUrl])
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current
     if (!video) return
-
-    if (isPlaying) {
-      video.pause()
-    } else {
-      video.play()
-    }
+    isPlaying ? video.pause() : video.play()
   }, [isPlaying])
 
   const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value)
-    const video = videoRef.current
-    if (video) {
-      video.currentTime = time
+    if (videoRef.current) {
+      videoRef.current.currentTime = time
       setCurrentTime(time)
     }
   }, [])
 
-  const skipBackward = useCallback(() => {
-    const video = videoRef.current
-    if (video) {
-      video.currentTime = Math.max(0, video.currentTime - 1)
-    }
-  }, [])
-
-  const skipForward = useCallback(() => {
-    const video = videoRef.current
-    if (video) {
-      video.currentTime = Math.min(duration, video.currentTime + 1)
-    }
-  }, [duration])
-
-  // 计算当前时间对应的两个视频的原始时间
   const getOriginalTimes = useCallback((mergedTime: number) => {
-    // merged video 的起始点是两个视频对齐后的起始点
-    // video1 从 max(0, offset) 开始
-    // video2 从 max(0, -offset) 开始
     const start1 = Math.max(0, syncResult.offset)
     const start2 = Math.max(0, -syncResult.offset)
-
-    const time1 = start1 + mergedTime
-    const time2 = start2 + mergedTime
-
-    return { time1, time2 }
+    return { time1: start1 + mergedTime, time2: start2 + mergedTime }
   }, [syncResult.offset])
 
   const handleExtractFrame = useCallback(async () => {
     setIsExtracting(true)
     setError(null)
-
     try {
       const { time1, time2 } = getOriginalTimes(currentTime)
-
-      // 从两个原始视频中分别提取当前帧
       const { extractFrameFromVideo } = await import('../utils/api')
-
       const [result1, result2] = await Promise.all([
         extractFrameFromVideo(video1, time1),
         extractFrameFromVideo(video2, time2)
       ])
-
       if (result1.success && result2.success) {
         onFrameSelect(result1.image, result2.image, time1, time2)
       } else {
@@ -162,55 +112,51 @@ export default function VideoSyncPlayer({
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60)
     const seconds = Math.floor(time % 60)
-    const ms = Math.floor((time % 1) * 100)
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`
+    const ms = Math.floor((time % 1) * 10)
+    return `${minutes}:${seconds.toString().padStart(2, '0')}.${ms}`
   }
 
   return (
-    <div className="space-y-4" style={{ touchAction: 'pan-y' }}>
-      {/* 视频播放器 */}
-      <div className="card overflow-hidden bg-black" style={{ touchAction: 'pan-y' }}>
-        <div className="relative aspect-video">
+    <div className="space-y-6">
+      {/* 核心工作台 */}
+      <div className="bg-white rounded-[40px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-gray-100/50">
+        <div className="relative aspect-video bg-gray-900 group">
           <video
             ref={videoRef}
             src={mergedVideoUrl}
             className="w-full h-full object-contain"
             playsInline
-            disablePictureInPicture
-            disableRemotePlayback
-            onLoadedData={(e) => {
-              // 防止视频自动获得焦点导致滚动锁定
-              e.currentTarget.blur()
-            }}
-            style={{
-              touchAction: 'pan-y pan-x',
-              pointerEvents: 'auto',
-              WebkitTouchCallout: 'none',
-              userSelect: 'none'
-            }}
+            onLoadedData={(e) => e.currentTarget.blur()}
           />
 
-          {/* 中央播放按钮覆盖层 */}
-          {!isPlaying && (
-            <button
-              onClick={togglePlay}
-              className="absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity hover:bg-black/20 z-10"
-              style={{ pointerEvents: 'auto' }}
-            >
-              <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:scale-110 transition-transform">
-                <Play className="w-10 h-10 text-white ml-1" />
-              </div>
-            </button>
-          )}
+          <AnimatePresence>
+            {!isPlaying && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={togglePlay}
+                className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] transition-all hover:bg-black/10"
+              >
+                <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center scale-110 shadow-2xl">
+                  <Play className="w-8 h-8 text-white fill-white ml-1" />
+                </div>
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* 控制栏 */}
-        <div className="p-4 space-y-3">
-          {/* 进度条 */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-white/50 font-mono w-16">
-              {formatTime(currentTime)}
-            </span>
+        {/* 交互控制层 */}
+        <div className="p-8 space-y-8">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest tabular-nums">
+                {formatTime(currentTime)}
+              </span>
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest tabular-nums">
+                {formatTime(duration || effectiveDuration)}
+              </span>
+            </div>
             <input
               type="range"
               min={0}
@@ -218,119 +164,102 @@ export default function VideoSyncPlayer({
               step={0.01}
               value={currentTime}
               onChange={handleSeek}
-              className="flex-1 h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer accent-orange-500 hover:accent-orange-400"
-              style={{
-                background: `linear-gradient(to right, #f97316 0%, #f97316 ${(currentTime / (duration || effectiveDuration)) * 100}%, rgba(255,255,255,0.2) ${(currentTime / (duration || effectiveDuration)) * 100}%, rgba(255,255,255,0.2) 100%)`
-              }}
+              className="w-full h-2 bg-gray-100 rounded-full appearance-none cursor-pointer accent-gray-900"
             />
-            <span className="text-xs text-white/50 font-mono w-16 text-right">
-              {formatTime(duration || effectiveDuration)}
-            </span>
           </div>
 
-          {/* 控制按钮 */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <button
-                onClick={skipBackward}
-                className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                onClick={() => { if (videoRef.current) videoRef.current.currentTime -= 0.1 }}
+                className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all border border-gray-100 active:scale-95"
               >
-                <SkipBack className="w-5 h-5 text-white" />
+                <SkipBack className="w-5 h-5" />
               </button>
-
               <button
                 onClick={togglePlay}
-                className="w-12 h-12 rounded-xl bg-gradient-to-r from-orange-500 to-purple-500 hover:from-orange-400 hover:to-purple-400 flex items-center justify-center transition-all hover:scale-105"
+                className="w-16 h-16 rounded-[24px] bg-gray-900 flex items-center justify-center text-white shadow-xl shadow-gray-200 active:scale-95 transition-all"
               >
-                {isPlaying ? (
-                  <Pause className="w-6 h-6 text-white" />
-                ) : (
-                  <Play className="w-6 h-6 text-white ml-0.5" />
-                )}
+                {isPlaying ? <Pause className="w-7 h-7 fill-current" /> : <Play className="w-7 h-7 fill-current ml-1" />}
               </button>
-
               <button
-                onClick={skipForward}
-                className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                onClick={() => { if (videoRef.current) videoRef.current.currentTime += 0.1 }}
+                className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all border border-gray-100 active:scale-95"
               >
-                <SkipForward className="w-5 h-5 text-white" />
+                <SkipForward className="w-5 h-5" />
               </button>
             </div>
 
-            {/* 提取帧按钮 */}
             <button
               onClick={handleExtractFrame}
               disabled={isExtracting}
-              className="btn btn-primary flex items-center gap-2"
+              className={`
+                px-8 py-5 rounded-[24px] font-black text-[15px] transition-all flex items-center gap-3 shadow-xl
+                ${isExtracting 
+                  ? 'bg-gray-50 text-gray-400 cursor-not-allowed' 
+                  : 'bg-emerald-500 text-white shadow-emerald-100 hover:scale-[1.02] active:scale-[0.98]'
+                }
+              `}
             >
               {isExtracting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  提取中...
-                </>
+                <div className="w-5 h-5 border-2 border-gray-300 border-t-white rounded-full animate-spin" />
               ) : (
-                <>
-                  <Camera className="w-4 h-4" />
-                  选择当前帧
-                </>
+                <Camera className="w-5 h-5" />
               )}
+              <span>锁定当前动作进行对比</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 同步信息 */}
-      <div className="card p-4 bg-white/5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-sm">
-            <div>
-              <span className="text-white/40">时间偏移</span>
-              <span className="ml-2 font-mono text-white">
-                {syncResult.offset > 0 ? '+' : ''}{syncResult.offset.toFixed(2)}s
-              </span>
-            </div>
-            <div className="w-px h-4 bg-white/20" />
-            <div>
-              <span className="text-white/40">匹配度</span>
-              <span className="ml-2 font-mono text-white">
-                {(syncResult.confidence * 100).toFixed(0)}%
-              </span>
-            </div>
+      {/* 详细数据卡片 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white rounded-[28px] p-5 shadow-sm border border-gray-100/50">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">对齐偏移 / Offset</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl font-black text-gray-900">
+              {syncResult.offset > 0 ? '+' : ''}{syncResult.offset.toFixed(2)}
+            </span>
+            <span className="text-xs font-bold text-gray-400">SEC</span>
           </div>
-
-          <button
-            onClick={onReset}
-            className="text-xs text-white/40 hover:text-white flex items-center gap-1 transition-colors"
-          >
-            <RotateCcw className="w-3 h-3" />
-            重新对齐
-          </button>
+        </div>
+        <div className="bg-white rounded-[28px] p-5 shadow-sm border border-gray-100/50">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">AI 匹配度 / Match</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl font-black text-emerald-500">
+              {Math.round(syncResult.confidence * 100)}
+            </span>
+            <span className="text-[10px] font-bold text-emerald-400">%</span>
+          </div>
         </div>
       </div>
 
-      {/* 使用说明 */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="card bg-white/5 p-4"
-      >
-        <h4 className="text-sm font-medium text-white mb-2">如何使用</h4>
-        <ul className="text-xs text-white/50 space-y-1">
-          <li>• 播放视频查看同步效果</li>
-          <li>• 拖动进度条或点击快进/快退精确调整位置</li>
-          <li>• 在想要对比的动作处点击"选择当前帧"</li>
-          <li>• 系统将自动提取两个视频的对应帧进行分析</li>
-        </ul>
-      </motion.div>
+      {/* 操作提示 & 重置 */}
+      <div className="bg-gray-50/50 rounded-[28px] p-6 border border-gray-100 flex flex-col gap-4">
+        <div className="flex items-start gap-4">
+          <div className="w-8 h-8 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
+            <span className="text-sm">💡</span>
+          </div>
+          <p className="text-[12px] leading-relaxed text-gray-500 font-medium italic">
+            播放视频观察动作一致性，如有毫厘偏差，可点击右上角展开手动微调工具，直到音乐重拍完全重合。
+          </p>
+        </div>
+        <button
+          onClick={onReset}
+          className="w-full py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest hover:text-rose-500 transition-colors flex items-center justify-center gap-2"
+        >
+          <RotateCcw className="w-3 h-3" />
+          重置视频并重新上传素材
+        </button>
+      </div>
 
-      {/* 错误提示 */}
       {error && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card bg-red-500/10 border-red-500/30 p-3"
+          className="bg-rose-50 text-rose-600 px-6 py-4 rounded-2xl text-xs font-bold border border-rose-100"
         >
-          <p className="text-red-400 text-sm">{error}</p>
+          {error}
         </motion.div>
       )}
     </div>
